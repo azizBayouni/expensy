@@ -89,22 +89,22 @@ type CategoryFormData = z.infer<typeof categorySchema>;
 const expenseEmojis = [
   '🛒', '🍔', '🍕', '🚗', '🚌', '✈️', '🏠', '💡', '💧', '📱',
   '💻', '👕', '👠', '💊', '🏥', '🎬', '🎵', '📚', '🎓', '🎁',
-  '✈️', '🏨', '🏖️', '⛰️', '🎉', '☕️', '🍹', '💅', '💇‍♀️', '🏋️‍♂️',
+  '🏨', '🏖️', '⛰️', '🎉', '☕️', '🍹', '💅', '💇‍♀️', '🏋️‍♂️',
   '⚽️', '🏀', '🎮', '🐶', '🐱', '🐾', '🥕', '🍎', '🥦', '🍞',
   '🍷', '🍺', '🍸', '🍿', '🍦', '🍩', '🍪', '🎂', '🍓', '🥑',
-  '🌮', '🍣', '🍜', '🍝', '🍔', '🍟', '🥗', '🥪', '🥐', '🥨',
-  '🧀', '🥚', '🥛', '☕️', '🍵', '🧃', '🥤', '🍶', '🍷', '🥂',
+  '🌮', '🍣', '🍜', '🍝', '🍟', '🥗', '🥪', '🥐', '🥨',
+  '🧀', '🥚', '🥛', '🍵', '🧃', '🥤', '🍶', '🥂',
   '🍻', '🥃', '🚧', '⛽️', '🚃', '🚇', '🚊', '🚕', '🚓', '🚑',
   '🚚', '🚢', '🚲', '🛴', '🗺️', '🎫', '🎭', '🎤', '🎧', '🎸',
-  '🎹', '🎺', '🎻', '🥁', '🎨', '🎬', '🎟️', '🎪', '🏟️', '🏛️',
-  '🏠', '🏢', '🏬', '🏥', '🏦', '🏨', '🏪', '🏫', '🏭', '🏰',
+  '🎹', '🎺', '🎻', '🥁', '🎨', '🎟️', '🎪', '🏟️', '🏛️',
+  '🏢', '🏬', '🏦', '🏪', '🏫', '🏭', '🏰',
   '💒', '🗼', '🗽', '🗿', '🛠️', '🔩', '🔨', '🧱', '🪜', '🧹',
-  '🧺', '🧻', '🧼', '🧽', '🛋️', '🛏️', '🚽', '🚿', '🛁', '💡',
-  '🔌', '🔋', '🖥️', '⌨️', '🖱️', '🖨️', '📱', '☎️', '📠', '📺',
-  '📷', '📹', '⌚️', '👚', '👕', '👖', '👔', '👗', '👙', '👘',
-  '👠', '👡', '👢', '👞', '👟', '🧢', '👒', '👓', '🕶️', '💍',
-  '💼', '👜', '👝', '👛', '🎒', '⛑️', '💊', '💉', '🌡️', '🩺',
-  '❤️‍🩹', '🩹', '🪥', '💈', '✂️', '💅', '💪', '🧠', '👀', '🦷',
+  '🧺', '🧻', '🧼', '🧽', '🛋️', '🛏️', '🚽', '🚿', '🛁',
+  '🔌', '🔋', '🖥️', '⌨️', '🖱️', '🖨️', '☎️', '📠', '📺',
+  '📷', '📹', '⌚️', '👚', '👖', '👔', '👗', '👙', '👘',
+  '👡', '👢', '👞', '👟', '🧢', '👒', '👓', '🕶️', '💍',
+  '💼', '👜', '👝', '👛', '🎒', '⛑️', '💉', '🌡️', '🩺',
+  '❤️‍🩹', '🩹', '🪥', '💈', '✂️', '💪', '🧠', '👀', '🦷',
   '🗣️', '👨‍⚕️', '👩‍⚕️', '👨‍🎓', '👩‍🎓', '👨‍🏫', '👩‍🏫', '👶', '🧒', '🧑'
 ];
 
@@ -115,17 +115,26 @@ function isLucideIcon(icon: string | LucideIcon): icon is LucideIcon {
 function getIconComponent(iconName: string | undefined): LucideIcon {
   if (!iconName) return Smile;
   const Icon = LucideIcons[iconName as keyof typeof LucideIcons] || Smile;
-  return typeof Icon === 'function' ? Icon : Smile;
+  // This check is crucial to ensure we return a component
+  if (React.isValidElement(<Icon />)) {
+    return Icon;
+  }
+  return Smile;
 }
 
 function getIconName(IconComponent: LucideIcon | string): keyof typeof LucideIcons | string {
-  if (typeof IconComponent !== 'function') return IconComponent;
-  for (const name in LucideIcons) {
-    if (LucideIcons[name as keyof typeof LucideIcons] === IconComponent) {
-      return name as keyof typeof LucideIcons;
+    if (typeof IconComponent !== 'function') {
+        // It's already a string (emoji or name)
+        return IconComponent;
     }
-  }
-  return 'Smile';
+    for (const name in LucideIcons) {
+        if (Object.prototype.hasOwnProperty.call(LucideIcons, name)) {
+            if (LucideIcons[name as keyof typeof LucideIcons] === IconComponent) {
+                return name as keyof typeof LucideIcons;
+            }
+        }
+    }
+    return 'Smile'; // Default fallback
 }
 
 
@@ -143,14 +152,8 @@ function buildHierarchy(categories: Category[]): (Category & { children: Categor
     }
   }
 
-  const resolveIcons = (nodes: any[]): (Category & { children: Category[] })[] => {
-    return nodes.map(node => ({
-      ...node,
-      children: node.children ? resolveIcons(node.children) : [],
-    }));
-  };
-
-  return resolveIcons(hierarchy);
+  // No need to resolve icons here, they are handled during render
+  return hierarchy;
 }
 
 type DisplayCategory = Category & {
@@ -158,7 +161,7 @@ type DisplayCategory = Category & {
 };
 
 export function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>(initialCategories.map(c => ({...c, icon: getIconName(c.icon)})));
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -167,6 +170,12 @@ export function CategoriesPage() {
 
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
+    defaultValues: {
+        name: '',
+        type: 'expense',
+        icon: '🛒',
+        parentId: null,
+    }
   });
 
   const getDescendantIds = (categoryId: string): string[] => {
@@ -192,7 +201,7 @@ export function CategoriesPage() {
 
   const openEditDialog = (category: Category) => {
     setSelectedCategory(category);
-    const iconName = typeof category.icon === 'string' ? category.icon : getIconName(category.icon);
+    const iconName = getIconName(category.icon);
 
     form.reset({
       name: category.name,
@@ -250,9 +259,12 @@ export function CategoriesPage() {
       return;
     }
     
+    const iconValue = expenseEmojis.includes(data.icon) ? data.icon : getIconComponent(data.icon);
+    
     const categoryData = {
         ...data,
-        parentId: data.parentId,
+        icon: iconValue,
+        parentId: data.parentId || null,
     };
     
     if (selectedCategory) {
@@ -270,7 +282,7 @@ export function CategoriesPage() {
         name: data.name,
         type: data.type,
         parentId: data.parentId,
-        icon: data.icon,
+        icon: iconValue,
       };
       setCategories([...categories, newCategory]);
       toast({ title: 'Success', description: 'Category created successfully.' });
@@ -289,37 +301,37 @@ export function CategoriesPage() {
     }
   };
 
-  const getCategoryOptions = (currentCategory: Category | null) => {
-      const hierarchy = buildHierarchy(categories);
-      const options: { label: string; value: string; disabled: boolean }[] = [];
+  const getCategoryOptions = (currentCategory: Category | null): { label: string; value: string; disabled: boolean }[] => {
+    const hierarchy = buildHierarchy(categories);
+    const options: { label: string; value: string; disabled: boolean }[] = [];
   
-      function traverse(nodes: (Category & { children: Category[] })[], currentLevel: number, prefix = '') {
-        nodes.forEach(node => {
-          let disabled = false;
-          if (currentCategory) {
-            const descendantIds = getDescendantIds(currentCategory.id);
-            if (node.id === currentCategory.id || descendantIds.includes(node.id)) {
-              disabled = true;
-            }
-          }
-          if (currentLevel >= 2) {
+    function traverse(nodes: (Category & { children: Category[] })[], currentLevel: number, prefix = '') {
+      nodes.forEach(node => {
+        let disabled = false;
+        if (currentCategory) {
+          const descendantIds = getDescendantIds(currentCategory.id);
+          if (node.id === currentCategory.id || descendantIds.includes(node.id)) {
             disabled = true;
           }
+        }
+        if (currentLevel >= 2) {
+          disabled = true;
+        }
   
-          options.push({
-            label: `${prefix}${node.name}`,
-            value: node.id,
-            disabled: disabled,
-          });
-  
-          if (node.children && node.children.length > 0) {
-            traverse(node.children, currentLevel + 1, `${prefix}  `);
-          }
+        options.push({
+          label: `${prefix}${node.name}`,
+          value: node.id,
+          disabled: disabled,
         });
-      }
   
-      traverse(hierarchy, 0);
-      return options;
+        if (node.children && node.children.length > 0) {
+          traverse(node.children, currentLevel + 1, `${prefix}  `);
+        }
+      });
+    }
+  
+    traverse(hierarchy, 0);
+    return options;
   };
   
   const watchedType = form.watch('type');
@@ -333,12 +345,12 @@ export function CategoriesPage() {
 
     if (typeof icon === 'string' && expenseEmojis.includes(icon)) {
       IconComponent = <span className="text-2xl">{icon}</span>
-    } else if (typeof icon === 'string') {
-        const LucideComp = getIconComponent(icon);
+    } else if (isLucideIcon(icon)) {
+        const LucideComp = icon;
         IconComponent = <LucideComp className="w-5 h-5 text-muted-foreground" />
     } else {
-        const LucideComp = icon as LucideIcon;
-        IconComponent = <LucideComp className="w-5 h-5 text-muted-foreground" />
+        // Fallback for any other case
+        IconComponent = <Smile className="w-5 h-5 text-muted-foreground" />
     }
     
     return (
@@ -394,7 +406,7 @@ export function CategoriesPage() {
   
   const allCategoryOptions = getCategoryOptions(selectedCategory);
   
-  const filteredCategoryOptions = allCategoryOptions?.filter(opt => {
+  const filteredCategoryOptions = allCategoryOptions.filter(opt => {
     const cat = categories.find(c => c.id === opt.value);
     return cat?.type === watchedType;
   });
@@ -593,4 +605,5 @@ export function CategoriesPage() {
 
     </Card>
   );
-}
+
+    
