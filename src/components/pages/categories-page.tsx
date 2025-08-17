@@ -139,12 +139,14 @@ export function CategoriesPage() {
 
   const openEditDialog = (category: Category) => {
     setSelectedCategory(category);
+    const iconName = Object.keys(Emojis).find(
+      (key) => (Emojis[key as keyof typeof Emojis]) === category.icon
+    ) || 'Smile';
+    
     form.reset({
       name: category.name,
       type: category.type,
-      icon: Object.keys(Emojis).find(
-        (key) => (Emojis[key as keyof typeof Emojis] as any).displayName === (category.icon as any)?.displayName
-      ) || 'Smile',
+      icon: iconName,
       parentId: category.parentId || null,
     });
     setIsDialogOpen(true);
@@ -194,13 +196,15 @@ export function CategoriesPage() {
       });
       return;
     }
+    
+    const IconComponent = Emojis[data.icon as keyof typeof Emojis] || Smile;
 
     if (selectedCategory) {
       // Edit
       setCategories(
         categories.map((c) =>
           c.id === selectedCategory.id
-            ? { ...c, ...data, icon: Emojis[data.icon as keyof typeof Emojis] || Smile }
+            ? { ...c, ...data, icon: IconComponent }
             : c
         )
       );
@@ -209,7 +213,7 @@ export function CategoriesPage() {
       const newCategory: Category = {
         id: `cat-${Date.now()}`,
         ...data,
-        icon: Emojis[data.icon as keyof typeof Emojis] || Smile,
+        icon: IconComponent,
       };
       setCategories([...categories, newCategory]);
     }
@@ -230,7 +234,7 @@ export function CategoriesPage() {
 
   const CategoryRow = ({ category, level = 0 }: { category: Category & { children: Category[] }, level: number }) => {
     const parentName = category.parentId ? categories.find(c => c.id === category.parentId)?.name : '—';
-    const IconComponent = category.icon;
+    const IconComponent = category.icon || Smile;
     return (
       <>
         <TableRow>
