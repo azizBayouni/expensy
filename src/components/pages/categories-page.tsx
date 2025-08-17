@@ -86,20 +86,20 @@ const categorySchema = z.object({
 
 type CategoryFormData = z.infer<typeof categorySchema>;
 
-const emojiIconNames = Object.keys(LucideIcons).filter(
+const iconNames = Object.keys(LucideIcons).filter(
   (key) =>
     key !== 'createLucideIcon' &&
     key !== 'LucideIcon' &&
     /^[A-Z]/.test(key)
 ) as (keyof typeof LucideIcons)[];
 
-function getIconComponent(iconName: string): LucideIcon {
-  const Icon = LucideIcons[iconName as keyof typeof LucideIcons] || Smile;
-  return Icon;
+function getIconComponent(iconName: string | undefined): LucideIcon {
+  if (!iconName) return Smile;
+  return LucideIcons[iconName as keyof typeof LucideIcons] || Smile;
 }
 
 function getIconName(IconComponent: LucideIcon): keyof typeof LucideIcons {
-  for (const name of emojiIconNames) {
+  for (const name of iconNames) {
     if (LucideIcons[name] === IconComponent) {
       return name;
     }
@@ -109,27 +109,32 @@ function getIconName(IconComponent: LucideIcon): keyof typeof LucideIcons {
 
 
 function buildHierarchy(categories: Category[]): (Category & { children: Category[] })[] {
-  const cats = JSON.parse(JSON.stringify(categories.map(c => ({...c, icon: c.icon ? getIconName(c.icon) : 'Smile' }))));
+  const cats = JSON.parse(JSON.stringify(categories));
   const categoryMap = new Map(cats.map((c: any) => [c.id, { ...c, children: [] }]));
   const hierarchy: (Category & { children: Category[] })[] = [];
 
   for (const category of categoryMap.values()) {
     if (category.parentId && categoryMap.has(category.parentId)) {
       const parent = categoryMap.get(category.parentId)!;
-      if (!parent.children) {
-        parent.children = [];
-      }
       parent.children.push(category);
     } else {
       hierarchy.push(category);
     }
   }
-  return hierarchy.map(c => ({...c, icon: getIconComponent(c.icon as unknown as string)}));
+  
+  const resolveIcons = (nodes: any[]): (Category & { children: Category[] })[] => {
+    return nodes.map(node => ({
+      ...node,
+      icon: typeof node.icon === 'string' ? getIconComponent(node.icon) : node.icon,
+      children: node.children ? resolveIcons(node.children) : [],
+    }));
+  };
+
+  return resolveIcons(hierarchy);
 }
 
-
 export function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [categories, setCategories] = useState<Category[]>(initialCategories.map(c => ({...c, icon: getIconName(c.icon)} as any)));
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -162,8 +167,8 @@ export function CategoriesPage() {
   };
 
   const openEditDialog = (category: Category) => {
-    setSelectedCategory(category);
-    const iconName = getIconName(category.icon);
+    setSelectedCategory(category as any);
+    const iconName = typeof category.icon === 'string' ? category.icon : getIconName(category.icon);
 
     form.reset({
       name: category.name,
@@ -177,9 +182,11 @@ export function CategoriesPage() {
   const openDeleteAlert = (category: Category) => {
     const descendantIds = getDescendantIds(category.id);
     const allIdsToDelete = [category.id, ...descendantIds];
-    const hasTransactions = transactions.some((t) =>
-      allIdsToDelete.includes(categories.find(c => c.name === t.category)?.id ?? '')
-    );
+    
+    const hasTransactions = transactions.some((t) => {
+      const cat = categories.find(c => c.name === t.category && c.type === t.type);
+      return cat && allIdsToDelete.includes(cat.id);
+    });
 
     if (hasTransactions) {
       toast({
@@ -219,26 +226,22 @@ export function CategoriesPage() {
       return;
     }
     
-    const IconComponent = getIconComponent(data.icon);
-
     if (selectedCategory) {
-      // Edit
       setCategories(
         categories.map((c) =>
           c.id === selectedCategory.id
-            ? { ...c, ...data, parentId: data.parentId, icon: IconComponent }
+            ? { ...c, ...data, parentId: data.parentId }
             : c
         )
       );
       toast({ title: 'Success', description: 'Category updated successfully.' });
     } else {
-      // Add
       const newCategory: Category = {
         id: `cat-${Date.now()}`,
         name: data.name,
         type: data.type,
         parentId: data.parentId,
-        icon: IconComponent,
+        icon: data.icon as any,
       };
       setCategories([...categories, newCategory]);
       toast({ title: 'Success', description: 'Category created successfully.' });
@@ -257,18 +260,55 @@ export function CategoriesPage() {
     }
   };
 
-  const hierarchicalCategories = buildHierarchy(categories);
+  const getCategoryOptions = (
+    currentCategory: Category | null
+  ): { label: string; value: string; disabled: boolean }[] => {
+    const hierarchy = buildHierarchy(categories.map(c => ({...c, icon: c.icon as any})));
+    const options: { label: string; value: string; disabled: boolean }[] = [];
+
+    function traverse(nodes: (Category & { children: Category[] })[], currentLevel: number, prefix = '') {
+      nodes.forEach(node => {
+        let disabled = false;
+        if (currentCategory) {
+          const descendantIds = getDescendantIds(currentCategory.id);
+          if (node.id === currentCategory.id || descendantIds.includes(node.id)) {
+            disabled = true;
+          }
+        }
+        if (currentLevel >= 2) {
+          disabled = true;
+        }
+
+        options.push({
+          label: `${prefix}${node.name}`,
+          value: node.id,
+          disabled: disabled,
+        });
+
+        if (node.children && node.children.length > 0) {
+          traverse(node.children, currentLevel + 1, `${prefix}  `);
+        }
+      });
+    }
+
+    traverse(hierarchy, 0);
+    return options;
+  };
+  
+  const watchedType = form.watch('type');
+
+  const hierarchicalCategories = buildHierarchy(categories.map(c => ({...c, icon: c.icon as any})));
 
   const CategoryRow = ({ category, level = 0 }: { category: Category & { children: Category[] }, level: number }) => {
     const parentName = category.parentId ? categories.find(c => c.id === category.parentId)?.name : '—';
-    const IconComponent = category.icon;
+    const IconComponent = typeof category.icon === 'string' ? getIconComponent(category.icon as string) : category.icon;
     
     return (
       <>
         <TableRow>
           <TableCell style={{ paddingLeft: `${1 + level * 2}rem` }}>
             <div className="flex items-center gap-3">
-              <IconComponent className="w-5 h-5 text-muted-foreground" />
+              {IconComponent && <IconComponent className="w-5 h-5 text-muted-foreground" />}
               <span className="font-medium">{category.name}</span>
             </div>
           </TableCell>
@@ -308,55 +348,18 @@ export function CategoriesPage() {
           </TableCell>
         </TableRow>
         {category.children && category.children.map(child => (
-          <CategoryRow key={child.id} category={{...child, icon: getIconComponent(child.icon as any)}} level={level + 1} />
+          <CategoryRow key={child.id} category={child} level={level + 1} />
         ))}
       </>
     );
   };
-
-  const getCategoryOptions = (
-    currentCategory: Category | null
-  ): { label: string; value: string; disabled: boolean }[] => {
-    const hierarchy = buildHierarchy(categories);
-
-    const options: { label: string; value: string; disabled: boolean }[] = [];
-
-    function traverse(nodes: (Category & { children: Category[] })[], currentLevel: number, prefix = '') {
-      nodes.forEach(node => {
-        let disabled = false;
-        if (currentCategory) {
-          const descendantIds = getDescendantIds(currentCategory.id);
-          if (node.id === currentCategory.id || descendantIds.includes(node.id)) {
-            disabled = true;
-          }
-        }
-        if (currentLevel >= 2) {
-          disabled = true;
-        }
-
-        options.push({
-          label: `${prefix}${node.name}`,
-          value: node.id,
-          disabled: disabled,
-        });
-
-        if (node.children && node.children.length > 0) {
-          traverse(node.children.map(c => ({...c, icon: getIconComponent(c.icon as any)})), currentLevel + 1, `${prefix}  `);
-        }
-      });
-    }
-
-    traverse(hierarchy, 0);
-    return options;
-  };
-
-  const watchedType = form.watch('type');
   
-  const filteredCategoryOptions = getCategoryOptions(selectedCategory).filter(opt => {
+  const allCategoryOptions = getCategoryOptions(selectedCategory);
+  
+  const filteredCategoryOptions = allCategoryOptions.filter(opt => {
     const cat = categories.find(c => c.id === opt.value);
     return cat?.type === watchedType;
-  }) || [];
-
+  });
 
   return (
     <Card>
@@ -468,7 +471,7 @@ export function CategoriesPage() {
                             <Button variant="outline" className="w-full justify-start">
                               {field.value ? (
                                 <>
-                                  {React.createElement(LucideIcons[field.value as keyof typeof LucideIcons] || Smile, { className: "mr-2 h-4 w-4" })}
+                                  {React.createElement(getIconComponent(field.value), { className: "mr-2 h-4 w-4" })}
                                   {field.value}
                                 </>
                               ) : (
@@ -479,8 +482,8 @@ export function CategoriesPage() {
                         </PopoverTrigger>
                         <PopoverContent className="w-80 h-96">
                           <div className="grid grid-cols-6 gap-2 overflow-y-auto h-full">
-                            {emojiIconNames.map((iconName) => {
-                              const IconComponent = LucideIcons[iconName as keyof typeof LucideIcons];
+                            {iconNames.map((iconName) => {
+                              const IconComponent = getIconComponent(iconName);
                               return (
                                 <Button
                                   key={iconName}
@@ -519,7 +522,7 @@ export function CategoriesPage() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="null">No parent</SelectItem>
-                          {filteredCategoryOptions.map((opt) => (
+                          {filteredCategoryOptions && filteredCategoryOptions.map((opt) => (
                             <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
                               {opt.label}
                             </SelectItem>
