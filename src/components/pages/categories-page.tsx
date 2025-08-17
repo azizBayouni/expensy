@@ -94,7 +94,8 @@ const emojiIconNames = Object.keys(LucideIcons).filter(
 ) as (keyof typeof LucideIcons)[];
 
 function getIconComponent(iconName: string): LucideIcon {
-  return LucideIcons[iconName as keyof typeof LucideIcons] || Smile;
+  const Icon = LucideIcons[iconName as keyof typeof LucideIcons] || Smile;
+  return Icon;
 }
 
 function getIconName(IconComponent: LucideIcon): keyof typeof LucideIcons {
@@ -108,14 +109,13 @@ function getIconName(IconComponent: LucideIcon): keyof typeof LucideIcons {
 
 
 function buildHierarchy(categories: Category[]): (Category & { children: Category[] })[] {
-  const cats = JSON.parse(JSON.stringify(categories.map(c => ({...c, icon: getIconName(c.icon)}))));
+  const cats = JSON.parse(JSON.stringify(categories.map(c => ({...c, icon: c.icon ? getIconName(c.icon) : 'Smile' }))));
   const categoryMap = new Map(cats.map((c: any) => [c.id, { ...c, children: [] }]));
   const hierarchy: (Category & { children: Category[] })[] = [];
 
   for (const category of categoryMap.values()) {
     if (category.parentId && categoryMap.has(category.parentId)) {
       const parent = categoryMap.get(category.parentId)!;
-      // Ensure children array exists
       if (!parent.children) {
         parent.children = [];
       }
@@ -261,7 +261,7 @@ export function CategoriesPage() {
 
   const CategoryRow = ({ category, level = 0 }: { category: Category & { children: Category[] }, level: number }) => {
     const parentName = category.parentId ? categories.find(c => c.id === category.parentId)?.name : '—';
-    const IconComponent = category.icon; // Directly use the component
+    const IconComponent = category.icon;
     
     return (
       <>
@@ -307,7 +307,7 @@ export function CategoriesPage() {
             </DropdownMenu>
           </TableCell>
         </TableRow>
-        {category.children.map(child => (
+        {category.children && category.children.map(child => (
           <CategoryRow key={child.id} category={{...child, icon: getIconComponent(child.icon as any)}} level={level + 1} />
         ))}
       </>
@@ -340,7 +340,7 @@ export function CategoriesPage() {
           disabled: disabled,
         });
 
-        if (node.children.length > 0) {
+        if (node.children && node.children.length > 0) {
           traverse(node.children.map(c => ({...c, icon: getIconComponent(c.icon as any)})), currentLevel + 1, `${prefix}  `);
         }
       });
@@ -351,14 +351,11 @@ export function CategoriesPage() {
   };
 
   const watchedType = form.watch('type');
-  const watchedParentId = form.watch('parentId');
-  const parentCategory = categories.find((c) => c.id === watchedParentId);
-  const filteredCategoryOptions = getCategoryOptions(
-    selectedCategory
-  ).filter(opt => {
+  
+  const filteredCategoryOptions = getCategoryOptions(selectedCategory).filter(opt => {
     const cat = categories.find(c => c.id === opt.value);
     return cat?.type === watchedType;
-  });
+  }) || [];
 
 
   return (
@@ -438,7 +435,7 @@ export function CategoriesPage() {
                         }}
                         defaultValue={field.value}
                         className="flex space-x-4"
-                        disabled={!!(selectedCategory && parentCategory)}
+                        disabled={!!selectedCategory}
                       >
                         <FormItem className="flex items-center space-x-2">
                           <FormControl>
