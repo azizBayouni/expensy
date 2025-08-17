@@ -90,15 +90,18 @@ const iconNames = Object.keys(LucideIcons).filter(
   (key) =>
     key !== 'createLucideIcon' &&
     key !== 'LucideIcon' &&
+    key !== 'icons' &&
     /^[A-Z]/.test(key)
 ) as (keyof typeof LucideIcons)[];
 
 function getIconComponent(iconName: string | undefined): LucideIcon {
-  if (!iconName) return Smile;
-  return LucideIcons[iconName as keyof typeof LucideIcons] || Smile;
+    if (!iconName) return Smile;
+    const Icon = LucideIcons[iconName as keyof typeof LucideIcons] || Smile;
+    return typeof Icon === 'function' ? Icon : Smile;
 }
 
-function getIconName(IconComponent: LucideIcon): keyof typeof LucideIcons {
+function getIconName(IconComponent: LucideIcon | string): keyof typeof LucideIcons {
+  if (typeof IconComponent !== 'function') return 'Smile';
   for (const name of iconNames) {
     if (LucideIcons[name] === IconComponent) {
       return name;
@@ -121,7 +124,7 @@ function buildHierarchy(categories: Category[]): (Category & { children: Categor
       hierarchy.push(category);
     }
   }
-  
+
   const resolveIcons = (nodes: any[]): (Category & { children: Category[] })[] => {
     return nodes.map(node => ({
       ...node,
@@ -133,8 +136,13 @@ function buildHierarchy(categories: Category[]): (Category & { children: Categor
   return resolveIcons(hierarchy);
 }
 
+type DisplayCategory = Category & {
+    children: DisplayCategory[];
+    icon: LucideIcon;
+};
+
 export function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>(initialCategories.map(c => ({...c, icon: getIconName(c.icon)} as any)));
+  const [categories, setCategories] = useState<Category[]>(initialCategories.map(c => ({...c, icon: getIconName(c.icon)})));
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -167,7 +175,7 @@ export function CategoriesPage() {
   };
 
   const openEditDialog = (category: Category) => {
-    setSelectedCategory(category as any);
+    setSelectedCategory(category);
     const iconName = typeof category.icon === 'string' ? category.icon : getIconName(category.icon);
 
     form.reset({
@@ -241,7 +249,7 @@ export function CategoriesPage() {
         name: data.name,
         type: data.type,
         parentId: data.parentId,
-        icon: data.icon as any,
+        icon: data.icon,
       };
       setCategories([...categories, newCategory]);
       toast({ title: 'Success', description: 'Category created successfully.' });
@@ -263,7 +271,7 @@ export function CategoriesPage() {
   const getCategoryOptions = (
     currentCategory: Category | null
   ): { label: string; value: string; disabled: boolean }[] => {
-    const hierarchy = buildHierarchy(categories.map(c => ({...c, icon: c.icon as any})));
+    const hierarchy = buildHierarchy(categories);
     const options: { label: string; value: string; disabled: boolean }[] = [];
 
     function traverse(nodes: (Category & { children: Category[] })[], currentLevel: number, prefix = '') {
@@ -297,18 +305,18 @@ export function CategoriesPage() {
   
   const watchedType = form.watch('type');
 
-  const hierarchicalCategories = buildHierarchy(categories.map(c => ({...c, icon: c.icon as any})));
-
-  const CategoryRow = ({ category, level = 0 }: { category: Category & { children: Category[] }, level: number }) => {
+  const hierarchicalCategories: DisplayCategory[] = buildHierarchy(categories) as DisplayCategory[];
+  
+  const CategoryRow = ({ category, level = 0 }: { category: DisplayCategory, level: number }) => {
     const parentName = category.parentId ? categories.find(c => c.id === category.parentId)?.name : '—';
-    const IconComponent = typeof category.icon === 'string' ? getIconComponent(category.icon as string) : category.icon;
+    const IconComponent = category.icon;
     
     return (
       <>
         <TableRow>
           <TableCell style={{ paddingLeft: `${1 + level * 2}rem` }}>
             <div className="flex items-center gap-3">
-              {IconComponent && <IconComponent className="w-5 h-5 text-muted-foreground" />}
+              <IconComponent className="w-5 h-5 text-muted-foreground" />
               <span className="font-medium">{category.name}</span>
             </div>
           </TableCell>
@@ -481,7 +489,7 @@ export function CategoriesPage() {
                           </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-80 h-96">
-                          <div className="grid grid-cols-6 gap-2 overflow-y-auto h-full">
+                          <div className="grid grid-cols-6 gap-2 overflow-y-auto h-full p-2">
                             {iconNames.map((iconName) => {
                               const IconComponent = getIconComponent(iconName);
                               return (
@@ -522,7 +530,7 @@ export function CategoriesPage() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="null">No parent</SelectItem>
-                          {filteredCategoryOptions && filteredCategoryOptions.map((opt) => (
+                          {filteredCategoryOptions.map((opt) => (
                             <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
                               {opt.label}
                             </SelectItem>
@@ -564,3 +572,5 @@ export function CategoriesPage() {
     </Card>
   );
 }
+
+    
