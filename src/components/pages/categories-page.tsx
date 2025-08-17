@@ -86,25 +86,43 @@ const categorySchema = z.object({
 
 type CategoryFormData = z.infer<typeof categorySchema>;
 
-const iconNames = Object.keys(LucideIcons).filter(
-  (key) =>
-    key !== 'createLucideIcon' &&
-    key !== 'LucideIcon' &&
-    key !== 'icons' &&
-    /^[A-Z]/.test(key)
-) as (keyof typeof LucideIcons)[];
+const expenseEmojis = [
+  '🛒', '🍔', '🍕', '🚗', '🚌', '✈️', '🏠', '💡', '💧', '📱',
+  '💻', '👕', '👠', '💊', '🏥', '🎬', '🎵', '📚', '🎓', '🎁',
+  '✈️', '🏨', '🏖️', '⛰️', '🎉', '☕️', '🍹', '💅', '💇‍♀️', '🏋️‍♂️',
+  '⚽️', '🏀', '🎮', '🐶', '🐱', '🐾', '🥕', '🍎', '🥦', '🍞',
+  '🍷', '🍺', '🍸', '🍿', '🍦', '🍩', '🍪', '🎂', '🍓', '🥑',
+  '🌮', '🍣', '🍜', '🍝', '🍔', '🍟', '🥗', '🥪', '🥐', '🥨',
+  '🧀', '🥚', '🥛', '☕️', '🍵', '🧃', '🥤', '🍶', '🍷', '🥂',
+  '🍻', '🥃', '🚧', '⛽️', '🚃', '🚇', '🚊', '🚕', '🚓', '🚑',
+  '🚚', '🚢', '🚲', '🛴', '🗺️', '🎫', '🎭', '🎤', '🎧', '🎸',
+  '🎹', '🎺', '🎻', '🥁', '🎨', '🎬', '🎟️', '🎪', '🏟️', '🏛️',
+  '🏠', '🏢', '🏬', '🏥', '🏦', '🏨', '🏪', '🏫', '🏭', '🏰',
+  '💒', '🗼', '🗽', '🗿', '🛠️', '🔩', '🔨', '🧱', '🪜', '🧹',
+  '🧺', '🧻', '🧼', '🧽', '🛋️', '🛏️', '🚽', '🚿', '🛁', '💡',
+  '🔌', '🔋', '🖥️', '⌨️', '🖱️', '🖨️', '📱', '☎️', '📠', '📺',
+  '📷', '📹', '⌚️', '👚', '👕', '👖', '👔', '👗', '👙', '👘',
+  '👠', '👡', '👢', '👞', '👟', '🧢', '👒', '👓', '🕶️', '💍',
+  '💼', '👜', '👝', '👛', '🎒', '⛑️', '💊', '💉', '🌡️', '🩺',
+  '❤️‍🩹', '🩹', '🪥', '💈', '✂️', '💅', '💪', '🧠', '👀', '🦷',
+  '🗣️', '👨‍⚕️', '👩‍⚕️', '👨‍🎓', '👩‍🎓', '👨‍🏫', '👩‍🏫', '👶', '🧒', '🧑'
+];
 
-function getIconComponent(iconName: string | undefined): LucideIcon {
-    if (!iconName) return Smile;
-    const Icon = LucideIcons[iconName as keyof typeof LucideIcons] || Smile;
-    return typeof Icon === 'function' ? Icon : Smile;
+function isLucideIcon(icon: string | LucideIcon): icon is LucideIcon {
+  return typeof icon === 'function';
 }
 
-function getIconName(IconComponent: LucideIcon | string): keyof typeof LucideIcons {
-  if (typeof IconComponent !== 'function') return 'Smile';
-  for (const name of iconNames) {
-    if (LucideIcons[name] === IconComponent) {
-      return name;
+function getIconComponent(iconName: string | undefined): LucideIcon {
+  if (!iconName) return Smile;
+  const Icon = LucideIcons[iconName as keyof typeof LucideIcons] || Smile;
+  return typeof Icon === 'function' ? Icon : Smile;
+}
+
+function getIconName(IconComponent: LucideIcon | string): keyof typeof LucideIcons | string {
+  if (typeof IconComponent !== 'function') return IconComponent;
+  for (const name in LucideIcons) {
+    if (LucideIcons[name as keyof typeof LucideIcons] === IconComponent) {
+      return name as keyof typeof LucideIcons;
     }
   }
   return 'Smile';
@@ -128,7 +146,6 @@ function buildHierarchy(categories: Category[]): (Category & { children: Categor
   const resolveIcons = (nodes: any[]): (Category & { children: Category[] })[] => {
     return nodes.map(node => ({
       ...node,
-      icon: typeof node.icon === 'string' ? getIconComponent(node.icon) : node.icon,
       children: node.children ? resolveIcons(node.children) : [],
     }));
   };
@@ -138,7 +155,6 @@ function buildHierarchy(categories: Category[]): (Category & { children: Categor
 
 type DisplayCategory = Category & {
     children: DisplayCategory[];
-    icon: LucideIcon;
 };
 
 export function CategoriesPage() {
@@ -168,7 +184,7 @@ export function CategoriesPage() {
     form.reset({
       name: '',
       type: 'expense',
-      icon: 'Smile',
+      icon: '🛒',
       parentId: null,
     });
     setIsDialogOpen(true);
@@ -234,11 +250,16 @@ export function CategoriesPage() {
       return;
     }
     
+    const categoryData = {
+        ...data,
+        parentId: data.parentId,
+    };
+    
     if (selectedCategory) {
       setCategories(
         categories.map((c) =>
           c.id === selectedCategory.id
-            ? { ...c, ...data, parentId: data.parentId }
+            ? { ...c, ...categoryData }
             : c
         )
       );
@@ -268,39 +289,37 @@ export function CategoriesPage() {
     }
   };
 
-  const getCategoryOptions = (
-    currentCategory: Category | null
-  ): { label: string; value: string; disabled: boolean }[] => {
-    const hierarchy = buildHierarchy(categories);
-    const options: { label: string; value: string; disabled: boolean }[] = [];
-
-    function traverse(nodes: (Category & { children: Category[] })[], currentLevel: number, prefix = '') {
-      nodes.forEach(node => {
-        let disabled = false;
-        if (currentCategory) {
-          const descendantIds = getDescendantIds(currentCategory.id);
-          if (node.id === currentCategory.id || descendantIds.includes(node.id)) {
+  const getCategoryOptions = (currentCategory: Category | null) => {
+      const hierarchy = buildHierarchy(categories);
+      const options: { label: string; value: string; disabled: boolean }[] = [];
+  
+      function traverse(nodes: (Category & { children: Category[] })[], currentLevel: number, prefix = '') {
+        nodes.forEach(node => {
+          let disabled = false;
+          if (currentCategory) {
+            const descendantIds = getDescendantIds(currentCategory.id);
+            if (node.id === currentCategory.id || descendantIds.includes(node.id)) {
+              disabled = true;
+            }
+          }
+          if (currentLevel >= 2) {
             disabled = true;
           }
-        }
-        if (currentLevel >= 2) {
-          disabled = true;
-        }
-
-        options.push({
-          label: `${prefix}${node.name}`,
-          value: node.id,
-          disabled: disabled,
+  
+          options.push({
+            label: `${prefix}${node.name}`,
+            value: node.id,
+            disabled: disabled,
+          });
+  
+          if (node.children && node.children.length > 0) {
+            traverse(node.children, currentLevel + 1, `${prefix}  `);
+          }
         });
-
-        if (node.children && node.children.length > 0) {
-          traverse(node.children, currentLevel + 1, `${prefix}  `);
-        }
-      });
-    }
-
-    traverse(hierarchy, 0);
-    return options;
+      }
+  
+      traverse(hierarchy, 0);
+      return options;
   };
   
   const watchedType = form.watch('type');
@@ -309,14 +328,25 @@ export function CategoriesPage() {
   
   const CategoryRow = ({ category, level = 0 }: { category: DisplayCategory, level: number }) => {
     const parentName = category.parentId ? categories.find(c => c.id === category.parentId)?.name : '—';
-    const IconComponent = category.icon;
+    const icon = category.icon;
+    let IconComponent: React.ReactNode;
+
+    if (typeof icon === 'string' && expenseEmojis.includes(icon)) {
+      IconComponent = <span className="text-2xl">{icon}</span>
+    } else if (typeof icon === 'string') {
+        const LucideComp = getIconComponent(icon);
+        IconComponent = <LucideComp className="w-5 h-5 text-muted-foreground" />
+    } else {
+        const LucideComp = icon as LucideIcon;
+        IconComponent = <LucideComp className="w-5 h-5 text-muted-foreground" />
+    }
     
     return (
       <>
         <TableRow>
           <TableCell style={{ paddingLeft: `${1 + level * 2}rem` }}>
             <div className="flex items-center gap-3">
-              <IconComponent className="w-5 h-5 text-muted-foreground" />
+              {IconComponent}
               <span className="font-medium">{category.name}</span>
             </div>
           </TableCell>
@@ -356,7 +386,7 @@ export function CategoriesPage() {
           </TableCell>
         </TableRow>
         {category.children && category.children.map(child => (
-          <CategoryRow key={child.id} category={child} level={level + 1} />
+          <CategoryRow key={child.id} category={child as DisplayCategory} level={level + 1} />
         ))}
       </>
     );
@@ -364,7 +394,7 @@ export function CategoriesPage() {
   
   const allCategoryOptions = getCategoryOptions(selectedCategory);
   
-  const filteredCategoryOptions = allCategoryOptions.filter(opt => {
+  const filteredCategoryOptions = allCategoryOptions?.filter(opt => {
     const cat = categories.find(c => c.id === opt.value);
     return cat?.type === watchedType;
   });
@@ -476,33 +506,25 @@ export function CategoriesPage() {
                        <Popover>
                         <PopoverTrigger asChild>
                            <FormControl>
-                            <Button variant="outline" className="w-full justify-start">
-                              {field.value ? (
-                                <>
-                                  {React.createElement(getIconComponent(field.value), { className: "mr-2 h-4 w-4" })}
-                                  {field.value}
-                                </>
-                              ) : (
-                                'Select Icon'
-                              )}
+                            <Button variant="outline" className="w-full justify-start text-2xl">
+                              {field.value ? field.value : 'Select Icon'}
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-80 h-96">
-                          <div className="grid grid-cols-6 gap-2 overflow-y-auto h-full p-2">
-                            {iconNames.map((iconName) => {
-                              const IconComponent = getIconComponent(iconName);
+                          <div className="grid grid-cols-8 gap-2 overflow-y-auto h-full p-2">
+                            {expenseEmojis.map((emoji) => {
                               return (
                                 <Button
-                                  key={iconName}
+                                  key={emoji}
                                   variant="ghost"
-                                  size="icon"
+                                  className="text-2xl"
                                   onClick={(e) => {
                                     e.preventDefault();
-                                    form.setValue("icon", iconName, { shouldValidate: true });
+                                    form.setValue("icon", emoji, { shouldValidate: true });
                                   }}
                                 >
-                                  <IconComponent />
+                                  {emoji}
                                 </Button>
                               );
                             })}
@@ -530,7 +552,7 @@ export function CategoriesPage() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="null">No parent</SelectItem>
-                          {filteredCategoryOptions.map((opt) => (
+                          {filteredCategoryOptions?.map((opt) => (
                             <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
                               {opt.label}
                             </SelectItem>
@@ -572,5 +594,3 @@ export function CategoriesPage() {
     </Card>
   );
 }
-
-    
