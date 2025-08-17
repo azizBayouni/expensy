@@ -74,7 +74,7 @@ import {
 } from '../ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import * as Emojis from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import React from 'react';
 
 const categorySchema = z.object({
@@ -86,44 +86,47 @@ const categorySchema = z.object({
 
 type CategoryFormData = z.infer<typeof categorySchema>;
 
-const emojiIconNames = Object.keys(Emojis).filter(
+const emojiIconNames = Object.keys(LucideIcons).filter(
   (key) =>
-    key !== 'createLucideIcon' && key !== 'LucideIcon' && /^[A-Z]/.test(key)
-) as (keyof typeof Emojis)[];
+    key !== 'createLucideIcon' &&
+    key !== 'LucideIcon' &&
+    /^[A-Z]/.test(key)
+) as (keyof typeof LucideIcons)[];
 
-function getIconComponent(icon: LucideIcon | string): LucideIcon {
-  if (typeof icon === 'string') {
-    return Emojis[icon as keyof typeof Emojis] || Smile;
-  }
-  return icon;
+function getIconComponent(iconName: string): LucideIcon {
+  return LucideIcons[iconName as keyof typeof LucideIcons] || Smile;
 }
 
-function getIconName(icon: LucideIcon | string): keyof typeof Emojis {
-  if (typeof icon === 'string') {
-    return icon as keyof typeof Emojis;
-  }
+function getIconName(IconComponent: LucideIcon): keyof typeof LucideIcons {
   for (const name of emojiIconNames) {
-    if (Emojis[name] === icon) {
+    if (LucideIcons[name] === IconComponent) {
       return name;
     }
   }
   return 'Smile';
 }
 
+
 function buildHierarchy(categories: Category[]): (Category & { children: Category[] })[] {
-  const cats = JSON.parse(JSON.stringify(categories));
+  const cats = JSON.parse(JSON.stringify(categories.map(c => ({...c, icon: getIconName(c.icon)}))));
   const categoryMap = new Map(cats.map((c: any) => [c.id, { ...c, children: [] }]));
   const hierarchy: (Category & { children: Category[] })[] = [];
 
   for (const category of categoryMap.values()) {
     if (category.parentId && categoryMap.has(category.parentId)) {
-      categoryMap.get(category.parentId)!.children.push(category);
+      const parent = categoryMap.get(category.parentId)!;
+      // Ensure children array exists
+      if (!parent.children) {
+        parent.children = [];
+      }
+      parent.children.push(category);
     } else {
       hierarchy.push(category);
     }
   }
-  return hierarchy;
+  return hierarchy.map(c => ({...c, icon: getIconComponent(c.icon as unknown as string)}));
 }
+
 
 export function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>(initialCategories);
@@ -215,7 +218,7 @@ export function CategoriesPage() {
       });
       return;
     }
-
+    
     const IconComponent = getIconComponent(data.icon);
 
     if (selectedCategory) {
@@ -223,7 +226,7 @@ export function CategoriesPage() {
       setCategories(
         categories.map((c) =>
           c.id === selectedCategory.id
-            ? { ...c, ...data, icon: IconComponent }
+            ? { ...c, ...data, parentId: data.parentId, icon: IconComponent }
             : c
         )
       );
@@ -258,7 +261,7 @@ export function CategoriesPage() {
 
   const CategoryRow = ({ category, level = 0 }: { category: Category & { children: Category[] }, level: number }) => {
     const parentName = category.parentId ? categories.find(c => c.id === category.parentId)?.name : '—';
-    const IconComponent = getIconComponent(category.icon);
+    const IconComponent = category.icon; // Directly use the component
     
     return (
       <>
@@ -305,7 +308,7 @@ export function CategoriesPage() {
           </TableCell>
         </TableRow>
         {category.children.map(child => (
-          <CategoryRow key={child.id} category={child} level={level + 1} />
+          <CategoryRow key={child.id} category={{...child, icon: getIconComponent(child.icon as any)}} level={level + 1} />
         ))}
       </>
     );
@@ -338,7 +341,7 @@ export function CategoriesPage() {
         });
 
         if (node.children.length > 0) {
-          traverse(node.children, currentLevel + 1, `${prefix}  `);
+          traverse(node.children.map(c => ({...c, icon: getIconComponent(c.icon as any)})), currentLevel + 1, `${prefix}  `);
         }
       });
     }
@@ -468,7 +471,7 @@ export function CategoriesPage() {
                             <Button variant="outline" className="w-full justify-start">
                               {field.value ? (
                                 <>
-                                  {React.createElement(Emojis[field.value as keyof typeof Emojis] || Smile, { className: "mr-2 h-4 w-4" })}
+                                  {React.createElement(LucideIcons[field.value as keyof typeof LucideIcons] || Smile, { className: "mr-2 h-4 w-4" })}
                                   {field.value}
                                 </>
                               ) : (
@@ -480,7 +483,7 @@ export function CategoriesPage() {
                         <PopoverContent className="w-80 h-96">
                           <div className="grid grid-cols-6 gap-2 overflow-y-auto h-full">
                             {emojiIconNames.map((iconName) => {
-                              const IconComponent = Emojis[iconName as keyof typeof Emojis];
+                              const IconComponent = LucideIcons[iconName as keyof typeof LucideIcons];
                               return (
                                 <Button
                                   key={iconName}
@@ -561,5 +564,3 @@ export function CategoriesPage() {
     </Card>
   );
 }
-
-    
