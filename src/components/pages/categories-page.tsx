@@ -276,7 +276,7 @@ export function CategoriesPage() {
           </TableCell>
         </TableRow>
         {category.children.map(child => (
-          <CategoryRow key={child.id} category={child} level={level + 1} />
+          <CategoryRow key={child.id} category={child as Category & { children: Category[] }} level={level + 1} />
         ))}
       </>
     );
