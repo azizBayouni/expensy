@@ -73,6 +73,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import * as Emojis from 'lucide-react';
+import React from 'react';
 
 const categorySchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -142,7 +143,7 @@ export function CategoriesPage() {
       name: category.name,
       type: category.type,
       icon: Object.keys(Emojis).find(
-        (key) => Emojis[key as keyof typeof Emojis] === category.icon
+        (key) => (Emojis[key as keyof typeof Emojis] as any).displayName === (category.icon as any)?.displayName
       ) || 'Smile',
       parentId: category.parentId || null,
     });
@@ -229,12 +230,13 @@ export function CategoriesPage() {
 
   const CategoryRow = ({ category, level = 0 }: { category: Category & { children: Category[] }, level: number }) => {
     const parentName = category.parentId ? categories.find(c => c.id === category.parentId)?.name : '—';
+    const IconComponent = category.icon;
     return (
       <>
         <TableRow>
           <TableCell style={{ paddingLeft: `${1 + level * 2}rem` }}>
             <div className="flex items-center gap-3">
-              <category.icon className="w-5 h-5 text-muted-foreground" />
+              <IconComponent className="w-5 h-5 text-muted-foreground" />
               <span className="font-medium">{category.name}</span>
             </div>
           </TableCell>
