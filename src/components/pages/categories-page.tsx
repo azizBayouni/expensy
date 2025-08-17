@@ -13,6 +13,7 @@ import {
   MoreHorizontal,
   PlusCircle,
   Smile,
+  type LucideIcon,
 } from 'lucide-react';
 import { categories as initialCategories, transactions } from '@/lib/data';
 import type { Category } from '@/types';
@@ -87,11 +88,22 @@ type CategoryFormData = z.infer<typeof categorySchema>;
 const emojiIconNames = Object.keys(Emojis).filter(
   (key) =>
     key !== 'createLucideIcon' && key !== 'LucideIcon' && /^[A-Z]/.test(key)
-);
+) as (keyof typeof Emojis)[];
+
+
+function getIconName(IconComponent: LucideIcon): keyof typeof Emojis {
+    for (const name of emojiIconNames) {
+        if (Emojis[name] === IconComponent) {
+            return name;
+        }
+    }
+    return 'Smile';
+}
+
 
 function buildHierarchy(categories: Category[]): (Category & { children: Category[] })[] {
-  const cats = JSON.parse(JSON.stringify(categories));
-  const categoryMap = new Map(cats.map((c: Category) => [c.id, { ...c, children: [] }]));
+  const cats = JSON.parse(JSON.stringify(categories.map(c => ({...c, icon: getIconName(c.icon)}))));
+  const categoryMap = new Map(cats.map((c: any) => [c.id, { ...c, children: [] }]));
   const hierarchy: (Category & { children: Category[] })[] = [];
 
   for (const category of categoryMap.values()) {
@@ -139,9 +151,7 @@ export function CategoriesPage() {
 
   const openEditDialog = (category: Category) => {
     setSelectedCategory(category);
-    const iconName = Object.keys(Emojis).find(
-      (key) => (Emojis[key as keyof typeof Emojis]) === category.icon
-    ) || 'Smile';
+    const iconName = getIconName(category.icon);
     
     form.reset({
       name: category.name,
@@ -204,7 +214,7 @@ export function CategoriesPage() {
       setCategories(
         categories.map((c) =>
           c.id === selectedCategory.id
-            ? { ...c, ...data, icon: IconComponent }
+            ? { ...c, name: data.name, type: data.type, parentId: data.parentId, icon: IconComponent }
             : c
         )
       );
@@ -212,7 +222,9 @@ export function CategoriesPage() {
       // Add
       const newCategory: Category = {
         id: `cat-${Date.now()}`,
-        ...data,
+        name: data.name,
+        type: data.type,
+        parentId: data.parentId,
         icon: IconComponent,
       };
       setCategories([...categories, newCategory]);
@@ -232,9 +244,9 @@ export function CategoriesPage() {
 
   const hierarchicalCategories = buildHierarchy(categories);
 
-  const CategoryRow = ({ category, level = 0 }: { category: Category & { children: Category[] }, level: number }) => {
+  const CategoryRow = ({ category, level = 0 }: { category: Category & { children: Category[], icon: string }, level: number }) => {
     const parentName = category.parentId ? categories.find(c => c.id === category.parentId)?.name : '—';
-    const IconComponent = category.icon || Smile;
+    const IconComponent = Emojis[category.icon as keyof typeof Emojis] || Smile;
     return (
       <>
         <TableRow>
@@ -266,12 +278,18 @@ export function CategoriesPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => openEditDialog(category)}>
+                <DropdownMenuItem onClick={() => {
+                    const originalCategory = categories.find(c => c.id === category.id);
+                    if (originalCategory) openEditDialog(originalCategory);
+                }}>
                   Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-red-600"
-                  onClick={() => openDeleteAlert(category)}
+                  onClick={() => {
+                    const originalCategory = categories.find(c => c.id === category.id);
+                    if (originalCategory) openDeleteAlert(originalCategory);
+                  }}
                 >
                   Delete
                 </DropdownMenuItem>
@@ -280,7 +298,7 @@ export function CategoriesPage() {
           </TableCell>
         </TableRow>
         {category.children.map(child => (
-          <CategoryRow key={child.id} category={child as Category & { children: Category[] }} level={level + 1} />
+          <CategoryRow key={child.id} category={child as any} level={level + 1} />
         ))}
       </>
     );
@@ -295,7 +313,7 @@ export function CategoriesPage() {
     
     const options: { label: string; value: string; disabled: boolean }[] = [];
     
-    function traverse(nodes: (Category & { children: Category[] })[], currentLevel: number, prefix = '') {
+    function traverse(nodes: (Category & { children: Category[], icon: string })[], currentLevel: number, prefix = '') {
       nodes.forEach(node => {
         let disabled = false;
         // Disable if it's the category being edited or one of its descendants
@@ -321,12 +339,12 @@ export function CategoriesPage() {
         });
 
         if (node.children.length > 0) {
-          traverse(node.children, currentLevel + 1, `${prefix}  `);
+          traverse(node.children as any, currentLevel + 1, `${prefix}  `);
         }
       });
     }
 
-    traverse(hierarchy, 0);
+    traverse(hierarchy as any, 0);
     return options;
   };
   
@@ -368,7 +386,7 @@ export function CategoriesPage() {
             </TableHeader>
             <TableBody>
               {hierarchicalCategories.map((category) => (
-                <CategoryRow key={category.id} category={category} />
+                <CategoryRow key={category.id} category={category as any} />
               ))}
             </TableBody>
           </Table>
@@ -467,8 +485,9 @@ export function CategoriesPage() {
                                   key={iconName}
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => {
-                                    field.onChange(iconName);
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    form.setValue("icon", iconName, { shouldValidate: true });
                                   }}
                                 >
                                   <IconComponent />
