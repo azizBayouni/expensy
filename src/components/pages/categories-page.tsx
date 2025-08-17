@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -90,19 +91,27 @@ const emojiIconNames = Object.keys(Emojis).filter(
     key !== 'createLucideIcon' && key !== 'LucideIcon' && /^[A-Z]/.test(key)
 ) as (keyof typeof Emojis)[];
 
-
-function getIconName(IconComponent: LucideIcon): keyof typeof Emojis {
-    for (const name of emojiIconNames) {
-        if (Emojis[name] === IconComponent) {
-            return name;
-        }
-    }
-    return 'Smile';
+function getIconComponent(icon: LucideIcon | string): LucideIcon {
+  if (typeof icon === 'string') {
+    return Emojis[icon as keyof typeof Emojis] || Smile;
+  }
+  return icon;
 }
 
+function getIconName(icon: LucideIcon | string): keyof typeof Emojis {
+  if (typeof icon === 'string') {
+    return icon as keyof typeof Emojis;
+  }
+  for (const name of emojiIconNames) {
+    if (Emojis[name] === icon) {
+      return name;
+    }
+  }
+  return 'Smile';
+}
 
 function buildHierarchy(categories: Category[]): (Category & { children: Category[] })[] {
-  const cats = JSON.parse(JSON.stringify(categories.map(c => ({...c, icon: getIconName(c.icon)}))));
+  const cats = JSON.parse(JSON.stringify(categories));
   const categoryMap = new Map(cats.map((c: any) => [c.id, { ...c, children: [] }]));
   const hierarchy: (Category & { children: Category[] })[] = [];
 
@@ -152,7 +161,7 @@ export function CategoriesPage() {
   const openEditDialog = (category: Category) => {
     setSelectedCategory(category);
     const iconName = getIconName(category.icon);
-    
+
     form.reset({
       name: category.name,
       type: category.type,
@@ -206,18 +215,19 @@ export function CategoriesPage() {
       });
       return;
     }
-    
-    const IconComponent = Emojis[data.icon as keyof typeof Emojis] || Smile;
+
+    const IconComponent = getIconComponent(data.icon);
 
     if (selectedCategory) {
       // Edit
       setCategories(
         categories.map((c) =>
           c.id === selectedCategory.id
-            ? { ...c, name: data.name, type: data.type, parentId: data.parentId, icon: IconComponent }
+            ? { ...c, ...data, icon: IconComponent }
             : c
         )
       );
+      toast({ title: 'Success', description: 'Category updated successfully.' });
     } else {
       // Add
       const newCategory: Category = {
@@ -228,6 +238,7 @@ export function CategoriesPage() {
         icon: IconComponent,
       };
       setCategories([...categories, newCategory]);
+      toast({ title: 'Success', description: 'Category created successfully.' });
     }
     setIsDialogOpen(false);
   };
@@ -239,14 +250,16 @@ export function CategoriesPage() {
       setCategories(categories.filter((c) => !idsToDelete.includes(c.id)));
       setIsDeleteAlertOpen(false);
       setCategoryToDelete(null);
+      toast({ title: 'Success', description: 'Category deleted successfully.' });
     }
   };
 
   const hierarchicalCategories = buildHierarchy(categories);
 
-  const CategoryRow = ({ category, level = 0 }: { category: Category & { children: Category[], icon: string }, level: number }) => {
+  const CategoryRow = ({ category, level = 0 }: { category: Category & { children: Category[] }, level: number }) => {
     const parentName = category.parentId ? categories.find(c => c.id === category.parentId)?.name : '—';
-    const IconComponent = Emojis[category.icon as keyof typeof Emojis] || Smile;
+    const IconComponent = getIconComponent(category.icon);
+    
     return (
       <>
         <TableRow>
@@ -278,18 +291,12 @@ export function CategoriesPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => {
-                    const originalCategory = categories.find(c => c.id === category.id);
-                    if (originalCategory) openEditDialog(originalCategory);
-                }}>
+                <DropdownMenuItem onClick={() => openEditDialog(category)}>
                   Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-red-600"
-                  onClick={() => {
-                    const originalCategory = categories.find(c => c.id === category.id);
-                    if (originalCategory) openDeleteAlert(originalCategory);
-                  }}
+                  onClick={() => openDeleteAlert(category)}
                 >
                   Delete
                 </DropdownMenuItem>
@@ -298,38 +305,30 @@ export function CategoriesPage() {
           </TableCell>
         </TableRow>
         {category.children.map(child => (
-          <CategoryRow key={child.id} category={child as any} level={level + 1} />
+          <CategoryRow key={child.id} category={child} level={level + 1} />
         ))}
       </>
     );
   };
-  
+
   const getCategoryOptions = (
-    allCategories: Category[],
-    currentCategory: Category | null,
-    level = 0
+    currentCategory: Category | null
   ): { label: string; value: string; disabled: boolean }[] => {
-    const hierarchy = buildHierarchy(allCategories);
-    
+    const hierarchy = buildHierarchy(categories);
+
     const options: { label: string; value: string; disabled: boolean }[] = [];
-    
-    function traverse(nodes: (Category & { children: Category[], icon: string })[], currentLevel: number, prefix = '') {
+
+    function traverse(nodes: (Category & { children: Category[] })[], currentLevel: number, prefix = '') {
       nodes.forEach(node => {
         let disabled = false;
-        // Disable if it's the category being edited or one of its descendants
         if (currentCategory) {
           const descendantIds = getDescendantIds(currentCategory.id);
           if (node.id === currentCategory.id || descendantIds.includes(node.id)) {
             disabled = true;
           }
         }
-        // Disable if depth limit is reached
         if (currentLevel >= 2) {
-            const hasChildren = allCategories.some(c => c.parentId === node.id);
-            if(hasChildren) {
-              // This is a complex condition. If we are editing, we can't move a parent to be a child of its child.
-              // and we can't exceed the depth limit.
-            }
+          disabled = true;
         }
 
         options.push({
@@ -339,23 +338,25 @@ export function CategoriesPage() {
         });
 
         if (node.children.length > 0) {
-          traverse(node.children as any, currentLevel + 1, `${prefix}  `);
+          traverse(node.children, currentLevel + 1, `${prefix}  `);
         }
       });
     }
 
-    traverse(hierarchy as any, 0);
+    traverse(hierarchy, 0);
     return options;
   };
-  
+
   const watchedType = form.watch('type');
   const watchedParentId = form.watch('parentId');
   const parentCategory = categories.find((c) => c.id === watchedParentId);
   const filteredCategoryOptions = getCategoryOptions(
-    categories.filter(c => c.type === watchedType),
     selectedCategory
-  );
-  
+  ).filter(opt => {
+    const cat = categories.find(c => c.id === opt.value);
+    return cat?.type === watchedType;
+  });
+
 
   return (
     <Card>
@@ -386,7 +387,7 @@ export function CategoriesPage() {
             </TableHeader>
             <TableBody>
               {hierarchicalCategories.map((category) => (
-                <CategoryRow key={category.id} category={category as any} />
+                <CategoryRow key={category.id} category={category} />
               ))}
             </TableBody>
           </Table>
@@ -507,14 +508,17 @@ export function CategoriesPage() {
                   render={({ field }) => (
                     <FormItem className='flex-1'>
                       <FormLabel>Parent Category</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                      <Select
+                        onValueChange={(value) => field.onChange(value === 'null' ? null : value)}
+                        value={field.value || 'null'}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="No parent" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">No parent</SelectItem>
+                          <SelectItem value="null">No parent</SelectItem>
                           {filteredCategoryOptions.map((opt) => (
                             <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
                               {opt.label}
@@ -557,3 +561,5 @@ export function CategoriesPage() {
     </Card>
   );
 }
+
+    
