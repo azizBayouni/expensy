@@ -1,7 +1,5 @@
 import type { Transaction, Category, Debt, Event } from '@/types';
 import {
-  ArrowDown,
-  ArrowUp,
   Briefcase,
   Car,
   Cat,
@@ -16,6 +14,12 @@ import {
   Shirt,
   ShoppingBag,
   Ticket,
+  PiggyBank,
+  HandCoins,
+  Landmark,
+  CircleDollarSign,
+  Bus,
+  Train,
 } from 'lucide-react';
 
 export const transactions: Transaction[] = [
@@ -36,7 +40,7 @@ export const transactions: Transaction[] = [
     currency: 'USD',
     date: '2024-07-02',
     wallet: 'Credit Card',
-    category: 'Food',
+    category: 'Groceries',
     description: 'Grocery shopping at Whole Foods',
     event: 'Weekly Groceries',
   },
@@ -47,7 +51,7 @@ export const transactions: Transaction[] = [
     currency: 'USD',
     date: '2024-07-01',
     wallet: 'Main Bank Account',
-    category: 'Housing',
+    category: 'Rent',
     description: 'Rent Payment',
   },
   {
@@ -57,7 +61,7 @@ export const transactions: Transaction[] = [
     currency: 'USD',
     date: '2024-07-03',
     wallet: 'Credit Card',
-    category: 'Transport',
+    category: 'Gas',
     description: 'Gasoline for car',
   },
   {
@@ -67,7 +71,7 @@ export const transactions: Transaction[] = [
     currency: 'USD',
     date: '2024-07-05',
     wallet: 'Debit Card',
-    category: 'Entertainment',
+    category: 'Movies',
     description: 'Movie tickets for two',
   },
   {
@@ -87,7 +91,7 @@ export const transactions: Transaction[] = [
     currency: 'USD',
     date: '2024-06-15',
     wallet: 'Credit Card',
-    category: 'Food',
+    category: 'Dining Out',
     description: 'Dinner with friends',
   },
   {
@@ -97,31 +101,37 @@ export const transactions: Transaction[] = [
     currency: 'USD',
     date: '2024-06-20',
     wallet: 'Credit Card',
-    category: 'Shopping',
+    category: 'Clothing',
     description: 'New shoes',
   },
 ];
 
 export const categories: Category[] = [
   // Income
-  { id: 'cat-inc-1', name: 'Salary', type: 'income', icon: Briefcase },
-  { id: 'cat-inc-2', name: 'Freelance', type: 'income', icon: ArrowUp },
-  { id: 'cat-inc-3', name: 'Gifts', type: 'income', icon: Gift },
-  { id: 'cat-inc-4', name: 'Investments', type: 'income', icon: ArrowUp },
+  { id: 'cat-inc-1', name: 'Salary', type: 'income', icon: Briefcase, parentId: null },
+  { id: 'cat-inc-2', name: 'Freelance', type: 'income', icon: HandCoins, parentId: null },
+  { id: 'cat-inc-3', name: 'Investments', type: 'income', icon: Landmark, parentId: null },
+  { id: 'cat-inc-4', name: 'Gifts', type: 'income', icon: Gift, parentId: null },
+  { id: 'cat-inc-5', name: 'Other', type: 'income', icon: CircleDollarSign, parentId: null },
 
   // Expense
-  { id: 'cat-exp-1', name: 'Food', type: 'expense', icon: Pizza },
-  { id: 'cat-exp-2', name: 'Housing', type: 'expense', icon: Home },
-  { id: 'cat-exp-3', name: 'Transport', type: 'expense', icon: Car },
-  { id: 'cat-exp-4', name: 'Entertainment', type: 'expense', icon: Ticket },
-  { id: 'cat-exp-5', name: 'Shopping', type: 'expense', icon: ShoppingBag },
-  { id: 'cat-exp-6', name: 'Health', type: 'expense', icon: HeartPulse },
-  { id: 'cat-exp-7', name: 'Education', type: 'expense', icon: GraduationCap },
-  { id: 'cat-exp-8', name: 'Travel', type: 'expense', icon: Plane },
-  { id: 'cat-exp-9', name: 'Utilities', type: 'expense', icon: Receipt },
-  { id: 'cat-exp-10', name: 'Pets', type: 'expense', icon: Cat },
-  { id: 'cat-exp-11', name: 'Fitness', type: 'expense', icon: Dumbbell },
-  { id: 'cat-exp-12', name: 'Clothing', type: 'expense', icon: Shirt },
+  { id: 'cat-exp-1', name: 'Food & Drink', type: 'expense', icon: Pizza, parentId: null },
+  { id: 'cat-exp-2', name: 'Groceries', type: 'expense', icon: ShoppingBag, parentId: 'cat-exp-1' },
+  { id: 'cat-exp-3', name: 'Dining Out', type: 'expense', icon: Ticket, parentId: 'cat-exp-1' },
+  { id: 'cat-exp-4', name: 'Housing', type: 'expense', icon: Home, parentId: null },
+  { id: 'cat-exp-5', name: 'Rent', type: 'expense', icon: Receipt, parentId: 'cat-exp-4' },
+  { id: 'cat-exp-6', name: 'Utilities', type: 'expense', icon: Receipt, parentId: 'cat-exp-4' },
+  { id: 'cat-exp-7', name: 'Transportation', type: 'expense', icon: Car, parentId: null },
+  { id: 'cat-exp-8', name: 'Gas', type: 'expense', icon: Car, parentId: 'cat-exp-7' },
+  { id: 'cat-exp-9', name: 'Public Transit', type: 'expense', icon: Bus, parentId: 'cat-exp-7' },
+  { id: 'cat-exp-10', name: 'Train Ticket', type: 'expense', icon: Train, parentId: 'cat-exp-9' },
+  { id: 'cat-exp-11', name: 'Shopping', type: 'expense', icon: ShoppingBag, parentId: null },
+  { id: 'cat-exp-12', name: 'Clothing', type: 'expense', icon: Shirt, parentId: 'cat-exp-11' },
+  { id: 'cat-exp-13', name: 'Health', type: 'expense', icon: HeartPulse, parentId: null },
+  { id: 'cat-exp-14', name: 'Fitness', type: 'expense', icon: Dumbbell, parentId: 'cat-exp-13' },
+  { id: 'cat-exp-15', name: 'Education', type: 'expense', icon: GraduationCap, parentId: null },
+  { id: 'cat-exp-16', name: 'Travel', type: 'expense', icon: Plane, parentId: null },
+  { id: 'cat-exp-17', name: 'Pets', type: 'expense', icon: Cat, parentId: null },
 ];
 
 export const debts: Debt[] = [

@@ -17,10 +17,11 @@ export type Category = {
   name: string;
   type: 'income' | 'expense';
   icon: LucideIcon;
+  parentId?: string | null;
 };
 
 export type Debt = {
-  id: string;
+  id:string;
   type: 'payable' | 'receivable';
   person: string;
   amount: number;
