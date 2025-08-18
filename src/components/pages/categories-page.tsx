@@ -15,6 +15,7 @@ import {
   PlusCircle,
   Smile,
   type LucideIcon,
+  Search,
 } from 'lucide-react';
 import { categories as initialCategories, transactions } from '@/lib/data';
 import type { Category } from '@/types';
@@ -87,25 +88,27 @@ const categorySchema = z.object({
 type CategoryFormData = z.infer<typeof categorySchema>;
 
 const expenseEmojis = [
-  '🛒', '🍔', '🍕', '🚗', '🚌', '✈️', '🏠', '💡', '💧', '📱',
-  '💻', '👕', '👠', '💊', '🏥', '🎬', '🎵', '📚', '🎓', '🎁',
-  '🏨', '🏖️', '⛰️', '🎉', '☕️', '🍹', '💅', '💇‍♀️', '🏋️‍♂️',
-  '⚽️', '🏀', '🎮', '🐶', '🐱', '🐾', '🥕', '🍎', '🥦', '🍞',
-  '🍷', '🍺', '🍸', '🍿', '🍦', '🍩', '🍪', '🎂', '🍓', '🥑',
-  '🌮', '🍣', '🍜', '🍝', '🍟', '🥗', '🥪', '🥐', '🥨',
-  '🧀', '🥚', '🥛', '🍵', '🧃', '🥤', '🍶', '🥂',
-  '🍻', '🥃', '🚧', '⛽️', '🚃', '🚇', '🚊', '🚕', '🚓', '🚑',
-  '🚚', '🚢', '🚲', '🛴', '🗺️', '🎫', '🎭', '🎤', '🎧', '🎸',
-  '🎹', '🎺', '🎻', '🥁', '🎨', '🎟️', '🎪', '🏟️', '🏛️',
-  '🏢', '🏬', '🏦', '🏪', '🏫', '🏭', '🏰',
-  '💒', '🗼', '🗽', '🗿', '🛠️', '🔩', '🔨', '🧱', '🪜', '🧹',
-  '🧺', '🧻', '🧼', '🧽', '🛋️', '🛏️', '🚽', '🚿', '🛁',
-  '🔌', '🔋', '🖥️', '⌨️', '🖱️', '🖨️', '☎️', '📠', '📺',
-  '📷', '📹', '⌚️', '👚', '👖', '👔', '👗', '👙', '👘',
-  '👡', '👢', '👞', '👟', '🧢', '👒', '👓', '🕶️', '💍',
-  '💼', '👜', '👝', '👛', '🎒', '⛑️', '💉', '🌡️', '🩺',
-  '❤️‍🩹', '🩹', '🪥', '💈', '✂️', '💪', '🧠', '👀', '🦷',
-  '🗣️', '👨‍⚕️', '👩‍⚕️', '👨‍🎓', '👩‍🎓', '👨‍🏫', '👩‍🏫', '👶', '🧒', '🧑'
+    '🛒', '🍔', '🍕', '🚗', '🚌', '✈️', '🏠', '💡', '💧', '📱',
+    '💻', '👕', '👠', '💊', '🏥', '🎬', '🎵', '📚', '🎓', '🎁',
+    '🏨', '🏖️', '⛰️', '🎉', '☕️', '🍹', '💅', '💇‍♀️', '🏋️‍♂️', '⚽️',
+    '🏀', '🎮', '🐶', '🐱', '🐾', '🥕', '🍎', '🥦', '🍞', '🍷',
+    '🍺', '🍸', '🍿', '🍦', '🍩', '🍪', '🎂', '🍓', '🥑', '🌮',
+    '🍣', '🍜', '🍝', '🍟', '🥗', '🥪', '🥐', '🥨', '🧀', '🥚',
+    '🥛', '🍵', '🧃', '🥤', '🍶', '🥂', '🍻', '🥃', '🚧', '⛽️',
+    '🚃', '🚇', '🚊', '🚕', '🚓', '🚑', '🚚', '🚢', '🚲', '🛴',
+    '🗺️', '🎫', '🎭', '🎤', '🎧', '🎸', '🎹', '🎺', '🎻', '🥁',
+    '🎨', '🎟️', '🎪', '🏟️', '🏛️', '🏢', '🏬', '🏦', '🏪', '🏫',
+    '🏭', '🏰', '💒', '🗼', '🗽', '🗿', '🛠️', '🔩', '🔨', '🧱',
+    '🪜', '🧹', '🧺', '🧻', '🧼', '🧽', '🛋️', '🛏️', '🚽', '🚿',
+    '🛁', '🔌', '🔋', '🖥️', '⌨️', '🖱️', '🖨️', '☎️', '📠', '📺',
+    '📷', '📹', '⌚️', '👚', '👖', '👔', '👗', '👙', '👘', '👡',
+    '👢', '👞', '👟', '🧢', '👒', '👓', '🕶️', '💍', '💼', '👜',
+    '👝', '👛', '🎒', '⛑️', '💉', '🌡️', '🩺', '❤️‍🩹', '🩹', '🪥',
+    '💈', '✂️', '💪', '🧠', '👀', '🦷', '🗣️', '👨‍⚕️', '👩‍⚕️', '👨‍🎓',
+    '👩‍🎓', '👨‍🏫', '👩‍🏫', '👶', '🧒', '🧑', '🧑‍🤝‍🧑', '🧑‍💻', '🧑‍🎨', '🧑‍🔬',
+    '🧑‍🚀', '🧑‍🚒', '🧑‍✈️', '🧑‍⚖️', '👑', '⛑', '🎩', '🎓', '💄', '💍',
+    '💎', '⚽', '⚾', '🥎', '🏀', '🏐', '🏈', '🏉', '🎾', '🎳',
+    '🏏', '🏑', '🏒', '🥍', '🏓', '🏸', '🥊', '🥋', '🥅', '⛳'
 ];
 
 function isLucideIcon(icon: string | LucideIcon): icon is LucideIcon {
@@ -114,17 +117,16 @@ function isLucideIcon(icon: string | LucideIcon): icon is LucideIcon {
 
 function getIconComponent(iconName: string | undefined): LucideIcon {
   if (!iconName) return Smile;
+  if (expenseEmojis.includes(iconName)) return Smile; // Emojis are handled differently
   const Icon = LucideIcons[iconName as keyof typeof LucideIcons] || Smile;
-  // This check is crucial to ensure we return a component
-  if (React.isValidElement(<Icon />)) {
-    return Icon;
+  if (typeof Icon === 'function') {
+      return Icon;
   }
   return Smile;
 }
 
 function getIconName(IconComponent: LucideIcon | string): keyof typeof LucideIcons | string {
     if (typeof IconComponent !== 'function') {
-        // It's already a string (emoji or name)
         return IconComponent;
     }
     for (const name in LucideIcons) {
@@ -136,7 +138,6 @@ function getIconName(IconComponent: LucideIcon | string): keyof typeof LucideIco
     }
     return 'Smile'; // Default fallback
 }
-
 
 function buildHierarchy(categories: Category[]): (Category & { children: Category[] })[] {
   const cats = JSON.parse(JSON.stringify(categories));
@@ -152,7 +153,6 @@ function buildHierarchy(categories: Category[]): (Category & { children: Categor
     }
   }
 
-  // No need to resolve icons here, they are handled during render
   return hierarchy;
 }
 
@@ -166,6 +166,7 @@ export function CategoriesPage() {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [emojiSearch, setEmojiSearch] = useState('');
   const { toast } = useToast();
 
   const form = useForm<CategoryFormData>({
@@ -259,33 +260,30 @@ export function CategoriesPage() {
       return;
     }
     
-    const iconValue = expenseEmojis.includes(data.icon) ? data.icon : getIconComponent(data.icon);
+    const isEmoji = expenseEmojis.includes(data.icon);
+    const iconValue = isEmoji ? data.icon : getIconComponent(data.icon);
     
     const categoryData = {
-        ...data,
+        name: data.name,
+        type: data.type,
         icon: iconValue,
         parentId: data.parentId || null,
     };
     
     if (selectedCategory) {
-      setCategories(
-        categories.map((c) =>
-          c.id === selectedCategory.id
-            ? { ...c, ...categoryData }
-            : c
-        )
-      );
-      toast({ title: 'Success', description: 'Category updated successfully.' });
+        setCategories(
+            categories.map((c) =>
+                c.id === selectedCategory.id ? { ...c, ...categoryData } : c
+            )
+        );
+        toast({ title: 'Success', description: 'Category updated successfully.' });
     } else {
-      const newCategory: Category = {
-        id: `cat-${Date.now()}`,
-        name: data.name,
-        type: data.type,
-        parentId: data.parentId,
-        icon: iconValue,
-      };
-      setCategories([...categories, newCategory]);
-      toast({ title: 'Success', description: 'Category created successfully.' });
+        const newCategory: Category = {
+            id: `cat-${Date.now()}`,
+            ...categoryData,
+        };
+        setCategories([...categories, newCategory]);
+        toast({ title: 'Success', description: 'Category created successfully.' });
     }
     setIsDialogOpen(false);
   };
@@ -330,8 +328,12 @@ export function CategoriesPage() {
       });
     }
   
-    traverse(hierarchy, 0);
-    return options;
+    try {
+        traverse(hierarchy, 0);
+        return options;
+    } catch (e) {
+        return [];
+    }
   };
   
   const watchedType = form.watch('type');
@@ -344,12 +346,16 @@ export function CategoriesPage() {
     let IconComponent: React.ReactNode;
 
     if (typeof icon === 'string' && expenseEmojis.includes(icon)) {
-      IconComponent = <span className="text-2xl">{icon}</span>
-    } else if (isLucideIcon(icon)) {
+        IconComponent = <span className="text-2xl">{icon}</span>
+    } else if (typeof icon === 'function') {
         const LucideComp = icon;
         IconComponent = <LucideComp className="w-5 h-5 text-muted-foreground" />
+    } else if (typeof icon === 'string') {
+        // Fallback for string icon names that might not have been converted
+        const LucideComp = getIconComponent(icon);
+        IconComponent = <LucideComp className="w-5 h-5 text-muted-foreground" />
     } else {
-        // Fallback for any other case
+        // Default fallback
         IconComponent = <Smile className="w-5 h-5 text-muted-foreground" />
     }
     
@@ -406,10 +412,14 @@ export function CategoriesPage() {
   
   const allCategoryOptions = getCategoryOptions(selectedCategory);
   
-  const filteredCategoryOptions = allCategoryOptions.filter(opt => {
+  const filteredCategoryOptions = allCategoryOptions?.filter(opt => {
     const cat = categories.find(c => c.id === opt.value);
     return cat?.type === watchedType;
   });
+
+  const filteredEmojis = expenseEmojis.filter(emoji => 
+    emoji.toLowerCase().includes(emojiSearch.toLowerCase())
+  );
 
   return (
     <Card>
@@ -523,9 +533,18 @@ export function CategoriesPage() {
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
-                        <PopoverContent className="w-80 h-96">
-                          <div className="grid grid-cols-8 gap-2 overflow-y-auto h-full p-2">
-                            {expenseEmojis.map((emoji) => {
+                        <PopoverContent className="w-80 h-96 p-2">
+                            <div className="relative mb-2">
+                               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                               <Input 
+                                 placeholder="Search emoji..."
+                                 className="pl-8"
+                                 value={emojiSearch}
+                                 onChange={(e) => setEmojiSearch(e.target.value)}
+                               />
+                            </div>
+                          <div className="grid grid-cols-8 gap-2 overflow-y-auto h-[calc(100%-40px)]">
+                            {filteredEmojis.map((emoji) => {
                               return (
                                 <Button
                                   key={emoji}
@@ -605,5 +624,8 @@ export function CategoriesPage() {
 
     </Card>
   );
+
+    
+}
 
     
