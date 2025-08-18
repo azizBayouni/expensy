@@ -80,6 +80,9 @@ export function DebtsPage() {
 
   const form = useForm<DebtFormData>({
     resolver: zodResolver(debtSchema),
+    defaultValues: {
+      amount: '',
+    },
   });
   
   const attachments = form.watch('attachments') || [];
@@ -107,7 +110,7 @@ export function DebtsPage() {
     form.reset({
       type,
       person: '',
-      amount: undefined,
+      amount: '',
       dueDate: new Date(),
       note: '',
       attachments: [],
