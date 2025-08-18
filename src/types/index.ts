@@ -31,6 +31,8 @@ export type Debt = {
   dueDate: string;
   status: 'paid' | 'unpaid' | 'partial';
   paidAmount: number;
+  note?: string;
+  attachments?: { name: string, path: string }[];
 };
 
 export type Event = {

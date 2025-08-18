@@ -146,7 +146,7 @@ export const categories: Category[] = [
   { id: 'cat-exp-18', name: 'Movies', type: 'expense', icon: Ticket, parentId: null },
 ];
 
-export const debts: Debt[] = [
+export let debts: Debt[] = [
   {
     id: 'debt-1',
     type: 'payable',
@@ -155,6 +155,7 @@ export const debts: Debt[] = [
     dueDate: '2024-08-01',
     status: 'unpaid',
     paidAmount: 0,
+    note: 'For concert tickets',
   },
   {
     id: 'debt-2',
@@ -173,8 +174,13 @@ export const debts: Debt[] = [
     dueDate: '2024-06-30',
     status: 'paid',
     paidAmount: 50,
+    note: 'Lunch reimbursement'
   },
 ];
+
+export function updateDebts(newDebts: Debt[]) {
+    debts = newDebts;
+}
 
 export let events: Event[] = [
   {
