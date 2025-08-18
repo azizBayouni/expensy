@@ -138,7 +138,7 @@ function isLucideIcon(icon: string | LucideIcon): icon is LucideIcon {
 
 function getIconComponent(iconName: string | undefined): LucideIcon {
   if (!iconName) return Smile;
-  if (expenseEmojis.some(e => e.emoji === iconName)) return Smile; // Emojis are handled differently
+  if (expenseEmojis.some(e => e.emoji === iconName)) return Smile; 
   const Icon = LucideIcons[iconName as keyof typeof LucideIcons] || Smile;
   if (typeof Icon === 'function') {
       return Icon;
@@ -157,7 +157,7 @@ function getIconName(IconComponent: LucideIcon | string): keyof typeof LucideIco
             }
         }
     }
-    return 'Smile'; // Default fallback
+    return 'Smile'; 
 }
 
 function buildHierarchy(categories: Category[]): (Category & { children: Category[] })[] {
@@ -294,7 +294,7 @@ export function CategoriesPage() {
     if (selectedCategory) {
       const updatedCategory = { ...selectedCategory, ...categoryData };
       if (typeof categoryData.icon === 'string' && !isEmoji) {
-        updatedCategory.icon = getIconComponent(categoryData.icon);
+        updatedCategory.icon = getIconComponent(categoryData.icon as string);
       }
         setCategories(
             categories.map((c) =>
@@ -308,7 +308,7 @@ export function CategoriesPage() {
             ...categoryData,
         };
         if (typeof newCategory.icon === 'string' && !isEmoji) {
-            newCategory.icon = getIconComponent(newCategory.icon);
+            newCategory.icon = getIconComponent(newCategory.icon as string);
         }
         setCategories([...categories, newCategory]);
         toast({ title: 'Success', description: 'Category created successfully.' });
@@ -377,7 +377,8 @@ export function CategoriesPage() {
         const LucideComp = icon;
         IconComponent = <LucideComp className="w-5 h-5 text-muted-foreground" />
     } else {
-        const LucideComp = Smile;
+        // Fallback for when the icon is a string name (from form submission) but not an emoji
+        const LucideComp = getIconComponent(icon as string);
         IconComponent = <LucideComp className="w-5 h-5 text-muted-foreground" />
     }
     
@@ -434,10 +435,10 @@ export function CategoriesPage() {
   
   const allCategoryOptions = getCategoryOptions(selectedCategory);
   
-  const filteredCategoryOptions = allCategoryOptions?.filter(opt => {
+  const filteredCategoryOptions = allCategoryOptions.filter(opt => {
     const cat = categories.find(c => c.id === opt.value);
     return cat?.type === watchedType;
-  }) || [];
+  });
 
   const filteredEmojis = expenseEmojis.filter(item => 
     item.name.toLowerCase().includes(emojiSearch.toLowerCase())
@@ -646,8 +647,4 @@ export function CategoriesPage() {
 
     </Card>
   );
-
-    
 }
-
-    
