@@ -23,6 +23,7 @@ import {
   Shapes,
   Sparkles,
   User,
+  Wallet,
 } from 'lucide-react';
 import { Logo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -56,6 +57,11 @@ const navItems = [
     href: '/debts',
     label: 'Debts',
     icon: ListTodo,
+  },
+  {
+    href: '/wallets',
+    label: 'Wallets',
+    icon: Wallet,
   },
   {
     href: '/events',

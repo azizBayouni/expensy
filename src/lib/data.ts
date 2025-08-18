@@ -1,4 +1,4 @@
-import type { Transaction, Category, Debt, Event } from '@/types';
+import type { Transaction, Category, Debt, Event, Wallet } from '@/types';
 import {
   Briefcase,
   Car,
@@ -20,6 +20,9 @@ import {
   CircleDollarSign,
   Bus,
   Train,
+  CreditCard,
+  Banknote,
+  Wallet as WalletIcon,
 } from 'lucide-react';
 
 export const transactions: Transaction[] = [
@@ -176,5 +179,36 @@ export const events: Event[] = [
     name: 'Friend\'s Wedding',
     date: '2024-09-05',
     description: 'Attending and celebrating the wedding of a close friend.',
+  },
+];
+
+export const wallets: Wallet[] = [
+  {
+    id: 'wallet-1',
+    name: 'Main Wallet',
+    icon: Landmark,
+    currency: 'USD',
+    balance: 1159.50,
+  },
+  {
+    id: 'wallet-2',
+    name: 'Credit Card',
+    icon: CreditCard,
+    currency: 'USD',
+    balance: -920.00,
+  },
+  {
+    id: 'wallet-3',
+    name: 'Savings',
+    icon: PiggyBank,
+    currency: 'USD',
+    balance: 15800.00,
+  },
+  {
+    id: 'wallet-4',
+    name: 'PayPal',
+    icon: WalletIcon,
+    currency: 'USD',
+    balance: 550.00,
   },
 ];

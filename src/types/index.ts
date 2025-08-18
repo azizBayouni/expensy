@@ -16,7 +16,7 @@ export type Category = {
   id: string;
   name: string;
   type: 'income' | 'expense';
-  icon: LucideIcon;
+  icon: LucideIcon | string;
   parentId?: string | null;
 };
 
@@ -35,4 +35,12 @@ export type Event = {
   name: string;
   date: string;
   description: string;
+};
+
+export type Wallet = {
+  id: string;
+  name: string;
+  icon: LucideIcon;
+  currency: string;
+  balance: number;
 };
