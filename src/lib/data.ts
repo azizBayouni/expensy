@@ -167,20 +167,28 @@ export const debts: Debt[] = [
   },
 ];
 
-export const events: Event[] = [
+export let events: Event[] = [
   {
     id: 'event-1',
     name: 'Summer Vacation to Italy',
     date: '2024-08-10',
     description: 'A 10-day trip exploring Rome, Florence, and Venice.',
+    icon: '✈️',
+    status: 'active',
   },
   {
     id: 'event-2',
-    name: 'Friend\'s Wedding',
+    name: "Friend's Wedding",
     date: '2024-09-05',
     description: 'Attending and celebrating the wedding of a close friend.',
+    icon: '💒',
+    status: 'active',
   },
 ];
+
+export function updateEvents(newEvents: Event[]) {
+  events = newEvents;
+}
 
 export let wallets: Wallet[] = [
   {

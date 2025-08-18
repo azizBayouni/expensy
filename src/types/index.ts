@@ -35,6 +35,8 @@ export type Event = {
   name: string;
   date: string;
   description: string;
+  icon: string;
+  status: 'active' | 'inactive';
 };
 
 export type Wallet = {
