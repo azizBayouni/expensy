@@ -71,30 +71,24 @@ export function TransactionForm({
   onDelete,
   onCancel,
 }: TransactionFormProps) {
-  const { isLoaded, isActive, eventId, currency } = useTravelMode();
-  
+  const { isActive, eventId, currency } = useTravelMode();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      type: transaction?.type || 'expense',
+      amount: transaction?.amount || ('' as any),
+      currency: transaction?.currency || (isActive ? currency ?? 'SAR' : 'SAR'),
+      wallet: transaction?.wallet || wallets.find((w) => w.isDefault)?.name || '',
+      category: transaction?.category || '',
+      date: transaction ? new Date(transaction.date) : new Date(),
+      description: transaction?.description || '',
+      event: transaction?.event || (isActive ? eventId ?? 'null' : 'null'),
+      attachments: transaction?.attachments || [],
+      excludeFromReports: transaction?.excludeFromReports || false,
+    },
   });
 
-  React.useEffect(() => {
-    if (isLoaded) {
-      const defaultWallet = wallets.find((w) => w.isDefault)?.name;
-      form.reset({
-        type: transaction?.type || 'expense',
-        amount: transaction?.amount || 0,
-        currency: transaction?.currency || (isActive ? currency : 'SAR'),
-        wallet: transaction?.wallet || defaultWallet || '',
-        category: transaction?.category || '',
-        date: transaction ? new Date(transaction.date) : new Date(),
-        description: transaction?.description || '',
-        event: transaction?.event || (isActive ? eventId : undefined) || 'null',
-        attachments: transaction?.attachments || [],
-        excludeFromReports: transaction?.excludeFromReports || false,
-      });
-    }
-  }, [isLoaded, isActive, eventId, currency, transaction, form]);
-  
   const attachments = form.watch('attachments') || [];
   const transactionType = form.watch('type');
 
@@ -135,420 +129,401 @@ export function TransactionForm({
   
   const filteredCategories = categories.filter(c => c.type === transactionType);
 
-  if (!isLoaded) {
-    return (
-        <div className="space-y-4 py-4">
-            <Skeleton className="h-10 w-full" />
-            <div className="grid grid-cols-2 gap-4">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-            </div>
-             <div className="grid grid-cols-2 gap-4">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-            </div>
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-20 w-full" />
-        </div>
-    )
-  }
-
-
   return (
-    <AlertDialog>
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(handleFormSubmit)}
-        className="flex flex-col h-[calc(100vh-6rem)]"
-      >
-        <ScrollArea className="flex-1 pr-6 -mr-6">
-        <div className="space-y-4 py-4">
-          <FormField
-            control={form.control}
-            name="type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Type</FormLabel>
-                <Select
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    form.setValue('category', '');
-                  }}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="expense">Expense</SelectItem>
-                    <SelectItem value="income">Income</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="0.00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="currency"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Currency</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            "w-full justify-between",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value || "Select currency"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search currency..." />
-                        <CommandList>
-                          <CommandEmpty>No currency found.</CommandEmpty>
-                          <CommandGroup>
-                            {top100Currencies.map((currency) => (
-                              <CommandItem
-                                value={currency}
-                                key={currency}
-                                onSelect={() => {
-                                  form.setValue("currency", currency)
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    currency === field.value
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {currency}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
+    <>
+      <AlertDialog>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(handleFormSubmit)}
+            className="flex flex-col h-[calc(100vh-6rem)]"
+          >
+            <ScrollArea className="flex-1 pr-6 -mr-6">
+            <div className="space-y-4 py-4">
               <FormField
                 control={form.control}
-                name="wallet"
+                name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Wallet</FormLabel>
+                    <FormLabel>Type</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        form.setValue('category', '');
+                      }}
                       defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a wallet" />
+                          <SelectValue placeholder="Select a type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {wallets.map((wallet) => (
-                          <SelectItem key={wallet.id} value={wallet.name}>
-                            {wallet.name}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="expense">Expense</SelectItem>
+                        <SelectItem value="income">Income</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Category</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value
-                              ? filteredCategories.find(
-                                  (cat) => cat.name === field.value
-                                )?.name
-                              : "Select a category"}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command>
-                          <CommandInput placeholder="Search category..." />
-                          <CommandList>
-                            <CommandEmpty>No category found.</CommandEmpty>
-                            <CommandGroup>
-                              {filteredCategories.map((cat) => (
-                                <CommandItem
-                                  value={cat.name}
-                                  key={cat.id}
-                                  onSelect={() => {
-                                    form.setValue("category", cat.name);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      cat.name === field.value
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  {cat.name}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
 
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Amount</FormLabel>
                       <FormControl>
-                        <Button
-                          variant={'outline'}
-                          className={cn(
-                            'pl-3 text-left font-normal',
-                            !field.value && 'text-muted-foreground'
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, 'PPP')
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
+                        <Input type="number" placeholder="0.00" {...field} />
                       </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date('1900-01-01')
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="e.g. Coffee with friends" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="event"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Event</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || 'null'}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Assign to an event (optional)" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="null">None</SelectItem>
-                      {events.map((event) => (
-                        <SelectItem key={event.id} value={event.id}>
-                          {event.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-                control={form.control}
-                name="attachments"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Attachments</FormLabel>
-                    <FormControl>
-                       <div className="flex items-center gap-2">
-                         <Input
-                            type="file"
-                            id="file-upload"
-                            className="hidden"
-                            multiple
-                            onChange={(e) => {
-                               const currentFiles = field.value || [];
-                               const newFiles = Array.from(e.target.files || []);
-                               field.onChange([...currentFiles, ...newFiles]);
-                            }}
-                         />
-                         <label htmlFor="file-upload" className={cn(
-                           "flex items-center gap-2 cursor-pointer",
-                            "h-10 px-4 py-2 text-sm font-medium",
-                           "border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md"
-                         )}>
-                           <Paperclip className="h-4 w-4" />
-                           Add Receipt
-                         </label>
-                       </div>
-                    </FormControl>
-                    { attachments.length > 0 && (
-                        <div className="space-y-2 pt-2">
-                         {attachments.map((file, index) => {
-                           const { name, url } = handleFileDisplay(file);
-                           return (
-                              <div key={index} className="flex items-center justify-between p-2 border rounded-md">
-                                <span className="text-sm truncate">{name}</span>
-                                <div className="flex items-center gap-2">
-                                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => window.open(url, '_blank')}>
-                                    <Download className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                   type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={() => handleFileRemove(index)}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Currency</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "w-full justify-between",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value || "Select currency"}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                          <Command>
+                            <CommandInput placeholder="Search currency..." />
+                            <CommandList>
+                              <CommandEmpty>No currency found.</CommandEmpty>
+                              <CommandGroup>
+                                {top100Currencies.map((currency) => (
+                                  <CommandItem
+                                    value={currency}
+                                    key={currency}
+                                    onSelect={() => {
+                                      form.setValue("currency", currency)
+                                    }}
                                   >
-                                    <Trash2 className="h-4 w-4 text-red-500" />
-                                  </Button>
-                                </div>
-                              </div>
-                           )
-                         })}
-                        </div>
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        currency === field.value
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                    {currency}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="wallet"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Wallet</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a wallet" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {wallets.map((wallet) => (
+                              <SelectItem key={wallet.id} value={wallet.name}>
+                                {wallet.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="excludeFromReports"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      Exclude from Reports
-                    </FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
+                  />
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Category</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn(
+                                  "w-full justify-between",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value
+                                  ? filteredCategories.find(
+                                      (cat) => cat.name === field.value
+                                    )?.name
+                                  : "Select a category"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command>
+                              <CommandInput placeholder="Search category..." />
+                              <CommandList>
+                                <CommandEmpty>No category found.</CommandEmpty>
+                                <CommandGroup>
+                                  {filteredCategories.map((cat) => (
+                                    <CommandItem
+                                      value={cat.name}
+                                      key={cat.id}
+                                      onSelect={() => {
+                                        form.setValue("category", cat.name);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          cat.name === field.value
+                                            ? "opacity-100"
+                                            : "opacity-0"
+                                        )}
+                                      />
+                                      {cat.name}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-          </div>
-        </ScrollArea>
-        <div className="flex justify-between items-center pt-4 border-t">
-            {transaction ? (
-              <AlertDialogTrigger asChild>
-                <Button type="button" variant="destructive" className="justify-start">
-                    Delete
+                <FormField
+                  control={form.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={'outline'}
+                              className={cn(
+                                'pl-3 text-left font-normal',
+                                !field.value && 'text-muted-foreground'
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, 'PPP')
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                              date > new Date() || date < new Date('1900-01-01')
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="e.g. Coffee with friends" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="event"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Event</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || 'null'}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Assign to an event (optional)" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="null">None</SelectItem>
+                          {events.map((event) => (
+                            <SelectItem key={event.id} value={event.id}>
+                              {event.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                    control={form.control}
+                    name="attachments"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Attachments</FormLabel>
+                        <FormControl>
+                           <div className="flex items-center gap-2">
+                             <Input
+                                type="file"
+                                id="file-upload"
+                                className="hidden"
+                                multiple
+                                onChange={(e) => {
+                                   const currentFiles = field.value || [];
+                                   const newFiles = Array.from(e.target.files || []);
+                                   field.onChange([...currentFiles, ...newFiles]);
+                                }}
+                             />
+                             <label htmlFor="file-upload" className={cn(
+                               "flex items-center gap-2 cursor-pointer",
+                                "h-10 px-4 py-2 text-sm font-medium",
+                               "border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md"
+                             )}>
+                               <Paperclip className="h-4 w-4" />
+                               Add Receipt
+                             </label>
+                           </div>
+                        </FormControl>
+                        { attachments.length > 0 && (
+                            <div className="space-y-2 pt-2">
+                             {attachments.map((file, index) => {
+                               const { name, url } = handleFileDisplay(file);
+                               return (
+                                  <div key={index} className="flex items-center justify-between p-2 border rounded-md">
+                                    <span className="text-sm truncate">{name}</span>
+                                    <div className="flex items-center gap-2">
+                                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => window.open(url, '_blank')}>
+                                        <Download className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                       type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => handleFileRemove(index)}
+                                      >
+                                        <Trash2 className="h-4 w-4 text-red-500" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                               )
+                             })}
+                            </div>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="excludeFromReports"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          Exclude from Reports
+                        </FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+              </div>
+            </ScrollArea>
+            <div className="flex justify-between items-center pt-4 border-t">
+                {transaction ? (
+                  <AlertDialogTrigger asChild>
+                    <Button type="button" variant="destructive" className="justify-start">
+                        Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                ) : <div />}
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+                <Button type="submit">
+                  {transaction ? 'Save Changes' : 'Create Transaction'}
                 </Button>
-              </AlertDialogTrigger>
-            ) : <div />}
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-            <Button type="submit">
-              {transaction ? 'Save Changes' : 'Create Transaction'}
-            </Button>
-          </div>
-        </div>
-      </form>
-    </Form>
+              </div>
+            </div>
+          </form>
+        </Form>
 
-    <AlertDialogContent>
-      <AlertDialogHeader>
-        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-        <AlertDialogDescription>
-          This action cannot be undone. This will permanently delete the transaction.
-        </AlertDialogDescription>
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
-        <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-      </AlertDialogFooter>
-    </AlertDialogContent>
-  </AlertDialog>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the transaction.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
-
-    
