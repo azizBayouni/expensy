@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -31,7 +32,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { TransactionForm } from '@/components/transaction-form';
-import { transactions as initialTransactions, categories, wallets } from '@/lib/data';
+import { transactions as initialTransactions, categories, wallets, updateTransactions } from '@/lib/data';
 import type { Transaction } from '@/types';
 import { cn } from '@/lib/utils';
 import {
@@ -58,6 +59,11 @@ export function TransactionsPage() {
   const [selectedTransaction, setSelectedTransaction] =
     React.useState<Transaction | null>(null);
 
+  const saveTransactions = (newTransactions: Transaction[]) => {
+    setTransactions(newTransactions);
+    updateTransactions(newTransactions);
+  };
+
   const handleAddTransaction = () => {
     setSelectedTransaction(null);
     setSheetOpen(true);
@@ -69,19 +75,20 @@ export function TransactionsPage() {
   };
 
   const handleDeleteTransaction = (id: string) => {
-    setTransactions(transactions.filter((t) => t.id !== id));
+    const newTransactions = transactions.filter((t) => t.id !== id);
+    saveTransactions(newTransactions);
   };
 
   const handleFormSubmit = (data: Transaction) => {
+    let newTransactions: Transaction[];
     if (selectedTransaction) {
-      setTransactions(
-        transactions.map((t) =>
-          t.id === selectedTransaction.id ? { ...data } : t
-        )
+      newTransactions = transactions.map((t) =>
+        t.id === selectedTransaction.id ? { ...data } : t
       );
     } else {
-      setTransactions([...transactions, { ...data, id: `trx-${Date.now()}` }]);
+      newTransactions = [...transactions, { ...data, id: `trx-${Date.now()}` }];
     }
+    saveTransactions(newTransactions);
     setSheetOpen(false);
   };
 

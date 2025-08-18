@@ -1,3 +1,4 @@
+
 import type { Transaction, Category, Debt, Event, Wallet } from '@/types';
 import {
   Briefcase,
@@ -25,7 +26,7 @@ import {
   Wallet as WalletIcon,
 } from 'lucide-react';
 
-export const transactions: Transaction[] = [
+export let transactions: Transaction[] = [
   {
     id: '1',
     type: 'income',
@@ -110,6 +111,11 @@ export const transactions: Transaction[] = [
     description: 'New shoes',
   },
 ];
+
+export function updateTransactions(newTransactions: Transaction[]) {
+  transactions = newTransactions;
+}
+
 
 export const categories: Category[] = [
   // Income
