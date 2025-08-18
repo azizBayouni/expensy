@@ -56,6 +56,7 @@ type TransactionFormProps = {
   onSubmit: (data: Transaction) => void;
   transaction?: Transaction | null;
   onDelete: (id: string) => void;
+  onCancel: () => void;
 };
 
 const top100Currencies = [
@@ -67,6 +68,7 @@ export function TransactionForm({
   onSubmit,
   transaction,
   onDelete,
+  onCancel,
 }: TransactionFormProps) {
   const defaultWallet = wallets.find((w) => w.isDefault)?.name;
 
@@ -499,7 +501,7 @@ export function TransactionForm({
               </AlertDialogTrigger>
             ) : <div />}
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={() => form.reset()}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
             <Button type="submit">
               {transaction ? 'Save Changes' : 'Create Transaction'}
             </Button>
@@ -523,6 +525,3 @@ export function TransactionForm({
   </AlertDialog>
   );
 }
-
-
-

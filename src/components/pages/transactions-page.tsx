@@ -80,6 +80,7 @@ export function TransactionsPage() {
   const handleDeleteTransaction = (id: string) => {
     const newTransactions = transactions.filter((t) => t.id !== id);
     saveTransactions(newTransactions);
+    setSheetOpen(false);
   };
 
   const handleFormSubmit = (data: Transaction) => {
@@ -316,11 +317,10 @@ export function TransactionsPage() {
             onSubmit={handleFormSubmit}
             transaction={selectedTransaction}
             onDelete={handleDeleteTransaction}
+            onCancel={() => setSheetOpen(false)}
           />
         </SheetContent>
       </Sheet>
     </div>
   );
 }
-
-    
