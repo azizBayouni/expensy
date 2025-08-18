@@ -21,7 +21,6 @@ import {
   ListTodo,
   PartyPopper,
   Shapes,
-  Sparkles,
   User,
   Wallet,
   Settings,
@@ -68,11 +67,6 @@ const navItems = [
     href: '/events',
     label: 'Events',
     icon: PartyPopper,
-  },
-  {
-    href: '/insights',
-    label: 'Insights',
-    icon: Sparkles,
   },
   {
     href: '/settings',
