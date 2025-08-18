@@ -77,7 +77,7 @@ export function TransactionForm({
       id: transaction?.id || Date.now().toString(),
       ...values,
       date: format(values.date, 'yyyy-MM-dd'),
-      currency: 'USD',
+      currency: 'SAR',
     };
     onSubmit(fullTransaction);
   }

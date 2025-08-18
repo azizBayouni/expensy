@@ -99,12 +99,12 @@ export function DebtsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="font-semibold">
-                      ${debt.amount.toFixed(2)}
+                      {debt.amount.toFixed(2)} SAR
                     </div>
                     {debt.status !== 'unpaid' && (
                       <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
                         <span>
-                          Paid: ${debt.paidAmount.toFixed(2)}
+                          Paid: {debt.paidAmount.toFixed(2)} SAR
                         </span>
                         <Progress
                           value={(debt.paidAmount / debt.amount) * 100}

@@ -135,8 +135,8 @@ export function TransactionsPage() {
                         : 'text-red-600'
                     )}
                   >
-                    {transaction.type === 'income' ? '+' : '-'}$
-                    {transaction.amount.toFixed(2)}
+                    {transaction.type === 'income' ? '+' : '-'}
+                    {transaction.amount.toFixed(2)} SAR
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

@@ -62,7 +62,7 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${totalBalance.toLocaleString()}
+              {totalBalance.toLocaleString()} SAR
             </div>
             <p className="text-xs text-muted-foreground">+20.1% from last month</p>
           </CardContent>
@@ -74,7 +74,7 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              +${totalIncome.toLocaleString()}
+              +{totalIncome.toLocaleString()} SAR
             </div>
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
@@ -86,7 +86,7 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              -${totalExpense.toLocaleString()}
+              -{totalExpense.toLocaleString()} SAR
             </div>
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
@@ -157,8 +157,8 @@ export function DashboardPage() {
                         transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
                       )}
                     >
-                      {transaction.type === 'income' ? '+' : '-'}$
-                      {transaction.amount.toFixed(2)}
+                      {transaction.type === 'income' ? '+' : '-'}
+                      {transaction.amount.toFixed(2)} SAR
                     </TableCell>
                   </TableRow>
                 ))}

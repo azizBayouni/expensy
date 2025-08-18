@@ -4,7 +4,7 @@ export type Transaction = {
   id: string;
   type: 'income' | 'expense';
   amount: number;
-  currency: 'USD';
+  currency: 'SAR';
   date: string;
   wallet: string;
   category: string;

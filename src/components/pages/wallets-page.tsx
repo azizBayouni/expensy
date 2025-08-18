@@ -183,7 +183,7 @@ export function WalletsPage() {
         id: `wallet-${Date.now()}`,
         name: data.name,
         icon: getIconComponent(data.icon),
-        currency: 'USD',
+        currency: 'SAR',
         balance: 0,
         isDefault: false,
       };
@@ -268,11 +268,11 @@ export function WalletsPage() {
                     wallet.balance < 0 ? 'text-red-500' : 'text-foreground'
                   )}
                 >
-                  {wallet.balance < 0 ? '-' : ''}$
+                  {wallet.balance < 0 ? '-' : ''}
                   {Math.abs(wallet.balance).toLocaleString('en-US', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
-                  })}
+                  })} SAR
                 </p>
               </CardContent>
             </Card>
@@ -376,5 +376,3 @@ export function WalletsPage() {
     </div>
   );
 }
-
-    
