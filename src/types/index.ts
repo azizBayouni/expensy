@@ -43,4 +43,5 @@ export type Wallet = {
   icon: LucideIcon;
   currency: string;
   balance: number;
+  isDefault?: boolean;
 };

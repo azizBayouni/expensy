@@ -30,7 +30,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { Transaction } from '@/types';
-import { categories } from '@/lib/data';
+import { categories, wallets } from '@/lib/data';
 
 const formSchema = z.object({
   description: z.string().min(2, {
@@ -52,6 +52,8 @@ export function TransactionForm({
   onSubmit,
   transaction,
 }: TransactionFormProps) {
+  const defaultWallet = wallets.find((w) => w.isDefault)?.name;
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -60,7 +62,7 @@ export function TransactionForm({
       type: transaction?.type || 'expense',
       date: transaction ? new Date(transaction.date) : new Date(),
       category: transaction?.category || '',
-      wallet: transaction?.wallet || '',
+      wallet: transaction?.wallet || defaultWallet || '',
     },
   });
 
@@ -223,10 +225,11 @@ export function TransactionForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="Main Bank Account">Main Bank Account</SelectItem>
-                    <SelectItem value="Credit Card">Credit Card</SelectItem>
-                    <SelectItem value="Debit Card">Debit Card</SelectItem>
-                    <SelectItem value="PayPal">PayPal</SelectItem>
+                    {wallets.map((wallet) => (
+                      <SelectItem key={wallet.id} value={wallet.name}>
+                        {wallet.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />

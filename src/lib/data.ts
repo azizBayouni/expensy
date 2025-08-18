@@ -182,13 +182,14 @@ export const events: Event[] = [
   },
 ];
 
-export const wallets: Wallet[] = [
+export let wallets: Wallet[] = [
   {
     id: 'wallet-1',
     name: 'Main Wallet',
     icon: Landmark,
     currency: 'USD',
     balance: 1159.50,
+    isDefault: true,
   },
   {
     id: 'wallet-2',
@@ -196,6 +197,7 @@ export const wallets: Wallet[] = [
     icon: CreditCard,
     currency: 'USD',
     balance: -920.00,
+    isDefault: false,
   },
   {
     id: 'wallet-3',
@@ -203,6 +205,7 @@ export const wallets: Wallet[] = [
     icon: PiggyBank,
     currency: 'USD',
     balance: 15800.00,
+    isDefault: false,
   },
   {
     id: 'wallet-4',
@@ -210,5 +213,6 @@ export const wallets: Wallet[] = [
     icon: WalletIcon,
     currency: 'USD',
     balance: 550.00,
+    isDefault: false,
   },
 ];

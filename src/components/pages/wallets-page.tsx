@@ -20,6 +20,7 @@ import {
   Wallet as WalletIcon,
   CircleDollarSign,
   HelpCircle,
+  Star,
 } from 'lucide-react';
 import { wallets as initialWallets, transactions } from '@/lib/data';
 import type { Wallet } from '@/types';
@@ -94,7 +95,7 @@ function getIconComponent(iconName: string | undefined): LucideIcon {
 
 function getIconName(IconComponent: LucideIcon): string {
     const iconItem = walletIcons.find(item => item.icon === IconComponent);
-    return iconItem ? iconItem.name : 'HelpCircle';
+    return iconItem ? item.name : 'HelpCircle';
 }
 
 export function WalletsPage() {
@@ -132,6 +133,14 @@ export function WalletsPage() {
   };
 
   const openDeleteAlert = (wallet: Wallet) => {
+    if (wallet.isDefault) {
+      toast({
+        variant: 'destructive',
+        title: 'Deletion Failed',
+        description: 'Cannot delete the default wallet.',
+      });
+      return;
+    }
     if (transactions.some(t => t.wallet === wallet.name)) {
       toast({
         variant: 'destructive',
@@ -171,11 +180,22 @@ export function WalletsPage() {
         icon: getIconComponent(data.icon),
         currency: 'USD',
         balance: 0,
+        isDefault: false,
       };
       setWallets([...wallets, newWallet]);
       toast({ title: 'Success', description: 'Wallet created successfully.' });
     }
     setIsDialogOpen(false);
+  };
+
+  const handleSetDefault = (walletId: string) => {
+    setWallets(
+      wallets.map((w) => ({
+        ...w,
+        isDefault: w.id === walletId,
+      }))
+    );
+    toast({ title: 'Success', description: 'Default wallet updated.' });
   };
 
   return (
@@ -197,12 +217,15 @@ export function WalletsPage() {
         {wallets.map((wallet) => {
           const Icon = wallet.icon;
           return (
-            <Card key={wallet.id} className="flex flex-col">
+            <Card key={wallet.id} className={cn("flex flex-col", wallet.isDefault && "border-primary")}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Icon className="w-6 h-6 text-muted-foreground" />
                     <CardTitle className="text-xl">{wallet.name}</CardTitle>
+                    {wallet.isDefault && (
+                      <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                    )}
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -211,6 +234,12 @@ export function WalletsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                       <DropdownMenuItem
+                        onClick={() => handleSetDefault(wallet.id)}
+                        disabled={wallet.isDefault}
+                      >
+                        Set as default
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => openEditDialog(wallet)}>
                         Edit
                       </DropdownMenuItem>
