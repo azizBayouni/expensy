@@ -598,7 +598,7 @@ export function SettingsPage() {
       
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
-           {dialogStep === 1 && (
+          {dialogStep === 1 && (
             <>
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
@@ -610,7 +610,7 @@ export function SettingsPage() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel onClick={resetDialog}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => setDialogStep(2)}>Continue</AlertDialogAction>
+                <Button onClick={() => setDialogStep(2)}>Continue</Button>
               </AlertDialogFooter>
             </>
           )}
