@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { transactions, categories, wallets, debts, updateTransactions, updateCategories, top100Currencies, events, updateEvents, updateDebts, updateWallets } from '@/lib/data';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import type { Category, Transaction } from '@/types';
 import { format } from 'date-fns';
 import { Label } from '@/components/ui/label';
@@ -41,6 +41,11 @@ export function SettingsPage() {
   const transactionImportRef = useRef<HTMLInputElement>(null);
   const [categoryImportFile, setCategoryImportFile] = useState<File | null>(null);
   const categoryImportRef = useRef<HTMLInputElement>(null);
+
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [dialogType, setDialogType] = useState<'transactions' | 'categories' | null>(null);
+  const [dialogStep, setDialogStep] = useState(1);
+
 
   const profileForm = useForm({
     resolver: zodResolver(profileSchema),
@@ -348,58 +353,41 @@ export function SettingsPage() {
     }
   };
     
-  const handleDelete = (type: 'transactions' | 'categories') => {
+  const handleDelete = () => {
+    if (!dialogType) return;
+
     if (confirmationInput.toUpperCase() !== 'DELETE') {
         toast({ variant: 'destructive', title: "Confirmation Failed", description: "The confirmation text is incorrect." });
         return;
     }
     
-    if (type === 'transactions') {
+    if (dialogType === 'transactions') {
         updateTransactions([]);
         updateDebts([]);
         toast({ title: "Success", description: "All transactions and debts have been deleted." });
-    } else if (type === 'categories') {
+    } else if (dialogType === 'categories') {
         if (transactions.length > 0) {
             toast({ variant: 'destructive', title: "Action Failed", description: "You must delete all transactions before deleting categories." });
-            setConfirmationInput('');
+            resetDialog();
             return;
         }
         updateCategories([]);
         toast({ title: "Success", description: "All categories have been deleted." });
     }
     
-    setConfirmationInput('');
-    // We might need to manually close the dialog here if it doesn't close automatically.
-    // This depends on the component library's behavior.
+    resetDialog();
   };
 
-  const FinalDeleteDialog = ({ type, children }: { type: 'transactions' | 'categories', children: React.ReactNode }) => {
-    return (
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-            {children}
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Final Confirmation</AlertDialogTitle>
-              <AlertDialogDescription>
-                To confirm, please type "DELETE" in the box below. This action is irreversible.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="my-4">
-              <Input
-                value={confirmationInput}
-                onChange={(e) => setConfirmationInput(e.target.value)}
-                placeholder='Type "DELETE"'
-              />
-            </div>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setConfirmationInput('')}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => handleDelete(type)}>Confirm Deletion</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    );
+  const openConfirmationDialog = (type: 'transactions' | 'categories') => {
+    setDialogType(type);
+    setIsAlertOpen(true);
+  };
+
+  const resetDialog = () => {
+    setIsAlertOpen(false);
+    setDialogType(null);
+    setDialogStep(1);
+    setConfirmationInput('');
   };
 
 
@@ -598,50 +586,58 @@ export function SettingsPage() {
                 <CardDescription>These actions are irreversible. Please be certain.</CardDescription>
             </CardHeader>
             <CardContent className="flex gap-4">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive">Delete All Transactions</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete all your transactions and debts. This action is irreversible.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <FinalDeleteDialog type="transactions">
-                        <AlertDialogAction>Continue</AlertDialogAction>
-                      </FinalDeleteDialog>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                   <Button variant="destructive">Delete All Categories</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete all your categories. You must delete all transactions first. This action is irreversible.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <FinalDeleteDialog type="categories">
-                        <AlertDialogAction>Continue</AlertDialogAction>
-                      </FinalDeleteDialog>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button variant="destructive" onClick={() => openConfirmationDialog('transactions')}>
+                Delete All Transactions
+              </Button>
+              <Button variant="destructive" onClick={() => openConfirmationDialog('categories')}>
+                Delete All Categories
+              </Button>
             </CardContent>
         </Card>
       </div>
+      
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+           {dialogStep === 1 && (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {dialogType === 'transactions' && 'This will permanently delete all your transactions and debts. '}
+                  {dialogType === 'categories' && 'This will permanently delete all your categories. You must delete all transactions first. '}
+                  This action is irreversible.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={resetDialog}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => setDialogStep(2)}>Continue</AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
+
+          {dialogStep === 2 && (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Final Confirmation</AlertDialogTitle>
+                <AlertDialogDescription>
+                  To confirm, please type "DELETE" in the box below. This action is irreversible.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="my-4">
+                <Input
+                  value={confirmationInput}
+                  onChange={(e) => setConfirmationInput(e.target.value)}
+                  placeholder='Type "DELETE"'
+                />
+              </div>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={resetDialog}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete}>Confirm Deletion</AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-
-    
