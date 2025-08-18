@@ -205,6 +205,8 @@ export function DebtsPage() {
       status: newStatus,
       paymentHistory: [...(selectedDebt.paymentHistory || []), newPayment],
     };
+    
+    form.setValue('status', newStatus);
 
     saveDebts(debts.map(d => d.id === updatedDebt.id ? updatedDebt : d));
     setSelectedDebt(updatedDebt);
@@ -214,6 +216,9 @@ export function DebtsPage() {
 
   const payables = debts.filter((d) => d.type === 'payable');
   const receivables = debts.filter((d) => d.type === 'receivable');
+  
+  const totalPayable = payables.reduce((acc, debt) => acc + (debt.amount - debt.paidAmount), 0);
+  const totalReceivable = receivables.reduce((acc, debt) => acc + (debt.amount - debt.paidAmount), 0);
   
   const remainingBalance = selectedDebt ? selectedDebt.amount - selectedDebt.paidAmount : 0;
 
@@ -320,8 +325,18 @@ export function DebtsPage() {
     <>
     <Tabs defaultValue="payables" className="w-full">
       <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="payables">Payables</TabsTrigger>
-        <TabsTrigger value="receivables">Receivables</TabsTrigger>
+        <TabsTrigger value="payables">
+            Payables
+            <Badge variant="secondary" className="ml-2">
+                {totalPayable.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
+            </Badge>
+        </TabsTrigger>
+        <TabsTrigger value="receivables">
+            Receivables
+            <Badge variant="secondary" className="ml-2">
+                {totalReceivable.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
+            </Badge>
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="payables">
         <DebtTable list={payables} title="Payable" />
@@ -634,3 +649,5 @@ export function DebtsPage() {
     </>
   );
 }
+
+    
