@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState } from 'react';
-import { useForm, useFormState } from 'react-hook-form';
+import { useState, useRef } from 'react';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -18,10 +18,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { transactions, categories, wallets, debts } from '@/lib/data';
+import { transactions, categories, wallets, debts, updateTransactions, updateCategories, top100Currencies, events } from '@/lib/data';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
+import type { Transaction } from '@/types';
+import { format } from 'date-fns';
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Name is required.'),
@@ -37,6 +39,10 @@ export function SettingsPage() {
   const [deleteStep, setDeleteStep] = useState(0);
   const [deleteType, setDeleteType] = useState<'transactions' | 'categories' | null>(null);
   const [confirmationInput, setConfirmationInput] = useState('');
+  const [transactionImportFile, setTransactionImportFile] = useState<File | null>(null);
+  const transactionImportRef = useRef<HTMLInputElement>(null);
+  const [categoryImportFile, setCategoryImportFile] = useState<File | null>(null);
+  const categoryImportRef = useRef<HTMLInputElement>(null);
 
   const profileForm = useForm({
     resolver: zodResolver(profileSchema),
@@ -66,18 +72,161 @@ export function SettingsPage() {
       description: 'The API key has been saved and verified.',
     });
   };
+  
+  const handleDownloadTemplate = () => {
+    const header = "No.,Category,Amount,Note,Wallet,Currency,Date,Event,Exclude Report\n";
+    const blob = new Blob([header], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', 'import-template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  
+  const handleImportTransactions = () => {
+    if (!transactionImportFile) return;
+
+    Papa.parse(transactionImportFile, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const newTransactions: Transaction[] = [];
+        const data = results.data as any[];
+
+        for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            const rowNum = i + 2; // CSV row number (1-based, plus header)
+
+            // Validate Category
+            const category = categories.find(c => c.name.toLowerCase() === row.Category?.toLowerCase());
+            if (!category) {
+                toast({ variant: 'destructive', title: 'Import Failed', description: `Category '${row.Category}' not found on row ${rowNum}.` });
+                if(transactionImportRef.current) transactionImportRef.current.value = "";
+                setTransactionImportFile(null);
+                return;
+            }
+
+            // Validate Amount
+            const amount = parseFloat(row.Amount);
+            if (isNaN(amount)) {
+                toast({ variant: 'destructive', title: 'Import Failed', description: `Invalid amount on row ${rowNum}.` });
+                 if(transactionImportRef.current) transactionImportRef.current.value = "";
+                setTransactionImportFile(null);
+                return;
+            }
+            if (category.type === 'expense' && amount > 0) {
+                 toast({ variant: 'destructive', title: 'Import Failed', description: `Expense amount must not be positive on row ${rowNum}.` });
+                 if(transactionImportRef.current) transactionImportRef.current.value = "";
+                setTransactionImportFile(null);
+                return;
+            }
+             if (category.type === 'income' && amount < 0) {
+                 toast({ variant: 'destructive', title: 'Import Failed', description: `Income amount must not be negative on row ${rowNum}.` });
+                 if(transactionImportRef.current) transactionImportRef.current.value = "";
+                setTransactionImportFile(null);
+                return;
+            }
+
+            // Validate Wallet
+            const wallet = wallets.find(w => w.name.toLowerCase() === row.Wallet?.toLowerCase());
+            if (!wallet) {
+                toast({ variant: 'destructive', title: 'Import Failed', description: `Wallet '${row.Wallet}' not found on row ${rowNum}.` });
+                 if(transactionImportRef.current) transactionImportRef.current.value = "";
+                setTransactionImportFile(null);
+                return;
+            }
+            
+            // Validate Currency
+            const currency = row.Currency || wallets.find(w => w.isDefault)?.currency || 'SAR';
+            if (!top100Currencies.includes(currency)) {
+                toast({ variant: 'destructive', title: 'Import Failed', description: `Currency '${row.Currency}' not found on row ${rowNum}.` });
+                 if(transactionImportRef.current) transactionImportRef.current.value = "";
+                setTransactionImportFile(null);
+                return;
+            }
+            
+            // Validate Date
+            const date = new Date(row.Date);
+            if (isNaN(date.getTime())) {
+                toast({ variant: 'destructive', title: 'Import Failed', description: `Invalid date format on row ${rowNum}.` });
+                 if(transactionImportRef.current) transactionImportRef.current.value = "";
+                setTransactionImportFile(null);
+                return;
+            }
+            
+            // Validate Event (optional)
+            if (row.Event) {
+                const event = events.find(e => e.name.toLowerCase() === row.Event.toLowerCase());
+                if (!event) {
+                    toast({ variant: 'destructive', title: 'Import Failed', description: `Event '${row.Event}' not found on row ${rowNum}.` });
+                     if(transactionImportRef.current) transactionImportRef.current.value = "";
+                    setTransactionImportFile(null);
+                    return;
+                }
+            }
+
+            newTransactions.push({
+                id: `trx-import-${Date.now()}-${i}`,
+                type: category.type,
+                amount: Math.abs(amount),
+                currency: currency,
+                date: format(date, 'yyyy-MM-dd'),
+                wallet: wallet.name,
+                category: category.name,
+                description: row.Note || '',
+                event: row.Event || undefined,
+                excludeFromReports: row['Exclude Report']?.toLowerCase() === 'true',
+            });
+        }
+        
+        updateTransactions([...transactions, ...newTransactions]);
+        toast({ title: 'Import Successful', description: `${newTransactions.length} transactions imported.` });
+        if(transactionImportRef.current) transactionImportRef.current.value = "";
+        setTransactionImportFile(null);
+      },
+      error: (error) => {
+        toast({ variant: 'destructive', title: 'Import Error', description: `Failed to parse CSV file: ${error.message}` });
+        if(transactionImportRef.current) transactionImportRef.current.value = "";
+        setTransactionImportFile(null);
+      }
+    });
+  };
 
   const handleExportTransactions = () => {
     const wb = XLSX.utils.book_new();
-    const wsTransactions = XLSX.utils.json_to_sheet(transactions);
-    const wsCategories = XLSX.utils.json_to_sheet(categories.map(c => ({...c, icon: typeof c.icon === 'string' ? c.icon : c.icon.displayName })));
+    
+    // Transactions sheet
+    const wsTransactionsData = transactions.map((t, index) => ({
+        'No.': index + 1,
+        'Category': t.category,
+        'Amount': t.type === 'expense' ? -t.amount : t.amount,
+        'Note': t.description,
+        'Wallet': t.wallet,
+        'Currency': t.currency,
+        'Date': t.date,
+        'Event': t.event || '',
+        'Exclude Report': t.excludeFromReports ? 'true' : 'false'
+    }));
+    const wsTransactions = XLSX.utils.json_to_sheet(wsTransactionsData);
     XLSX.utils.book_append_sheet(wb, wsTransactions, 'Transactions');
+    
+    // Categories sheet
+    const wsCategoriesData = categories.map(c => ({
+        'Category Name': c.name,
+        'Parent Category': c.parentId ? categories.find(p => p.id === c.parentId)?.name || '' : '',
+        'Type': c.type
+    }));
+    const wsCategories = XLSX.utils.json_to_sheet(wsCategoriesData);
     XLSX.utils.book_append_sheet(wb, wsCategories, 'Categories');
-    XLSX.writeFile(wb, 'Expensy_Data.xlsx');
+
+    const exportFileName = `expensewise-export-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+    XLSX.writeFile(wb, exportFileName);
+    toast({ title: "Export Successful" });
   };
   
   const handleExportCategories = () => {
-     const csv = Papa.unparse(categories.map(c => ({...c, icon: typeof c.icon === 'string' ? c.icon : c.icon.displayName })));
+     const csv = Papa.unparse(categories.map(c => ({...c, icon: typeof c.icon === 'string' ? c.icon : (c.icon as any).displayName })));
      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
      const link = document.createElement('a');
      link.href = URL.createObjectURL(blob);
@@ -110,6 +259,10 @@ export function SettingsPage() {
                 const restoredData = JSON.parse(e.target?.result as string);
                 // Here you would typically update your state management solution
                 console.log("Restored Data:", restoredData);
+                // A real implementation would update state and data stores
+                // updateTransactions(restoredData.transactions || []);
+                // updateCategories(restoredData.categories || []);
+                // etc.
                 toast({ title: "Restore Successful", description: "Your data has been restored. The page will now reload." });
                 setTimeout(() => window.location.reload(), 2000);
             } catch (error) {
@@ -136,9 +289,9 @@ export function SettingsPage() {
     }
     
     if (deleteType === 'transactions') {
-        console.log("Deleting all transactions...");
+        updateTransactions([]);
     } else if (deleteType === 'categories') {
-        console.log("Deleting all categories...");
+        updateCategories([]);
     }
     
     toast({ title: "Success", description: `All ${deleteType} have been deleted.` });
@@ -248,9 +401,22 @@ export function SettingsPage() {
                         Use the template to ensure correct formatting.
                     </p>
                     <div className='flex gap-2'>
-                        <Button variant="outline" size="sm" disabled>Download Template</Button>
-                        <Input type="file" className="text-xs" accept=".csv" disabled />
+                        <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>Download Template</Button>
+                        <Input 
+                          ref={transactionImportRef}
+                          type="file" 
+                          className="text-xs" 
+                          accept=".csv" 
+                          onChange={(e) => setTransactionImportFile(e.target.files?.[0] || null)}
+                        />
                     </div>
+                     <Button 
+                        onClick={handleImportTransactions}
+                        disabled={!transactionImportFile}
+                        className="mt-2 w-full"
+                    >
+                        Import from CSV
+                    </Button>
                 </div>
                  <div className="space-y-2">
                     <Label>Export All Data</Label>
@@ -365,3 +531,5 @@ export function SettingsPage() {
     </div>
   );
 }
+
+    
