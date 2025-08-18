@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -36,15 +36,15 @@ const apiSchema = z.object({
 
 export function SettingsPage() {
   const { toast } = useToast();
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [dialogType, setDialogType] = useState<'transactions' | 'categories' | null>(null);
+  const [dialogStep, setDialogStep] = useState(1);
   const [confirmationInput, setConfirmationInput] = useState('');
+  
   const [transactionImportFile, setTransactionImportFile] = useState<File | null>(null);
   const transactionImportRef = useRef<HTMLInputElement>(null);
   const [categoryImportFile, setCategoryImportFile] = useState<File | null>(null);
   const categoryImportRef = useRef<HTMLInputElement>(null);
-
-  const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<'transactions' | 'categories' | null>(null);
-  const [dialogStep, setDialogStep] = useState(1);
 
 
   const profileForm = useForm({
@@ -59,6 +59,14 @@ export function SettingsPage() {
     resolver: zodResolver(apiSchema),
     defaultValues: { apiKey: '' },
   });
+  
+  useEffect(() => {
+    const savedApiKey = localStorage.getItem('exchangeRateApiKey');
+    if (savedApiKey) {
+      apiForm.setValue('apiKey', savedApiKey);
+    }
+  }, [apiForm]);
+
 
   const handleProfileSave = (data: z.infer<typeof profileSchema>) => {
     console.log('Profile saved:', data);
@@ -72,7 +80,7 @@ export function SettingsPage() {
     localStorage.setItem('exchangeRateApiKey', data.apiKey);
     toast({
       title: 'API Key Saved',
-      description: 'The API key has been saved and verified.',
+      description: 'The API key has been saved successfully.',
     });
   };
   
@@ -381,6 +389,7 @@ export function SettingsPage() {
   const openConfirmationDialog = (type: 'transactions' | 'categories') => {
     setDialogType(type);
     setIsAlertOpen(true);
+    setDialogStep(1);
   };
 
   const resetDialog = () => {
@@ -596,7 +605,7 @@ export function SettingsPage() {
         </Card>
       </div>
       
-      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+      <AlertDialog open={isAlertOpen} onOpenChange={(open) => !open && resetDialog()}>
         <AlertDialogContent>
           {dialogStep === 1 && (
             <>
