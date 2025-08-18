@@ -82,7 +82,7 @@ const categorySchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   type: z.enum(['income', 'expense']),
   icon: z.string(),
-  parentId: z.string().nullable(),
+  parentId: z.string().nullable().optional(),
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -377,7 +377,6 @@ export function CategoriesPage() {
         const LucideComp = icon;
         IconComponent = <LucideComp className="w-5 h-5 text-muted-foreground" />
     } else {
-        // Fallback for when the icon is a string name (from form submission) but not an emoji
         const LucideComp = getIconComponent(icon as string);
         IconComponent = <LucideComp className="w-5 h-5 text-muted-foreground" />
     }
