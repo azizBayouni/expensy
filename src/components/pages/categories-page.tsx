@@ -106,8 +106,8 @@ const expenseEmojis = [
     '👝', '👛', '🎒', '⛑️', '💉', '🌡️', '🩺', '❤️‍🩹', '🩹', '🪥',
     '💈', '✂️', '💪', '🧠', '👀', '🦷', '🗣️', '👨‍⚕️', '👩‍⚕️', '👨‍🎓',
     '👩‍🎓', '👨‍🏫', '👩‍🏫', '👶', '🧒', '🧑', '🧑‍🤝‍🧑', '🧑‍💻', '🧑‍🎨', '🧑‍🔬',
-    '🧑‍🚀', '🧑‍🚒', '🧑‍✈️', '🧑‍⚖️', '👑', '⛑', '🎩', '🎓', '💄', '💍',
-    '💎', '⚽', '⚾', '🥎', '🏀', '🏐', '🏈', '🏉', '🎾', '🎳',
+    '🧑‍🚀', '🧑‍🚒', '🧑‍✈️', '🧑‍⚖️', '👑', '⛑', '🎩', '💄',
+    '💎', '⚽', '⚾', '🥎', '🏐', '🏈', '🏉', '🎾', '🎳',
     '🏏', '🏑', '🏒', '🥍', '🏓', '🏸', '🥊', '🥋', '🥅', '⛳'
 ];
 
@@ -271,9 +271,13 @@ export function CategoriesPage() {
     };
     
     if (selectedCategory) {
+      const updatedCategory = { ...selectedCategory, ...categoryData };
+      if (typeof categoryData.icon === 'string' && !isEmoji) {
+        updatedCategory.icon = getIconComponent(categoryData.icon);
+      }
         setCategories(
             categories.map((c) =>
-                c.id === selectedCategory.id ? { ...c, ...categoryData } : c
+                c.id === selectedCategory.id ? updatedCategory : c
             )
         );
         toast({ title: 'Success', description: 'Category updated successfully.' });
@@ -282,6 +286,9 @@ export function CategoriesPage() {
             id: `cat-${Date.now()}`,
             ...categoryData,
         };
+        if (typeof newCategory.icon === 'string' && !isEmoji) {
+            newCategory.icon = getIconComponent(newCategory.icon);
+        }
         setCategories([...categories, newCategory]);
         toast({ title: 'Success', description: 'Category created successfully.' });
     }
@@ -327,13 +334,9 @@ export function CategoriesPage() {
         }
       });
     }
-  
-    try {
-        traverse(hierarchy, 0);
-        return options;
-    } catch (e) {
-        return [];
-    }
+
+    traverse(hierarchy, 0);
+    return options;
   };
   
   const watchedType = form.watch('type');
@@ -351,11 +354,9 @@ export function CategoriesPage() {
         const LucideComp = icon;
         IconComponent = <LucideComp className="w-5 h-5 text-muted-foreground" />
     } else if (typeof icon === 'string') {
-        // Fallback for string icon names that might not have been converted
         const LucideComp = getIconComponent(icon);
         IconComponent = <LucideComp className="w-5 h-5 text-muted-foreground" />
     } else {
-        // Default fallback
         IconComponent = <Smile className="w-5 h-5 text-muted-foreground" />
     }
     
@@ -415,7 +416,7 @@ export function CategoriesPage() {
   const filteredCategoryOptions = allCategoryOptions?.filter(opt => {
     const cat = categories.find(c => c.id === opt.value);
     return cat?.type === watchedType;
-  });
+  }) || [];
 
   const filteredEmojis = expenseEmojis.filter(emoji => 
     emoji.toLowerCase().includes(emojiSearch.toLowerCase())
@@ -583,7 +584,7 @@ export function CategoriesPage() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="null">No parent</SelectItem>
-                          {filteredCategoryOptions?.map((opt) => (
+                          {filteredCategoryOptions.map((opt) => (
                             <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
                               {opt.label}
                             </SelectItem>
@@ -627,5 +628,3 @@ export function CategoriesPage() {
 
     
 }
-
-    
