@@ -92,6 +92,7 @@ export function TransactionForm({
       ...values,
       date: format(values.date, 'yyyy-MM-dd'),
       attachments: values.attachments?.map(f => ({ name: f.name, path: URL.createObjectURL(f) })),
+      event: values.event === 'null' ? undefined : values.event,
     };
     onSubmit(fullTransaction);
   }
@@ -293,14 +294,14 @@ export function TransactionForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Event</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || 'null'}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Assign to an event (optional)" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="null">None</SelectItem>
                       {events.map((event) => (
                         <SelectItem key={event.id} value={event.name}>
                           {event.name}
@@ -425,3 +426,5 @@ export function TransactionForm({
   </AlertDialog>
   );
 }
+
+    
