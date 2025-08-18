@@ -72,14 +72,12 @@ export function TransactionForm({
   onCancel,
 }: TransactionFormProps) {
   const { isLoaded, isActive, eventId, currency } = useTravelMode();
-  const defaultWallet = wallets.find((w) => w.isDefault)?.name;
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-  });
+  
+  const form = useForm<z.infer<typeof formSchema>>();
 
   React.useEffect(() => {
     if (isLoaded) {
+      const defaultWallet = wallets.find((w) => w.isDefault)?.name;
       form.reset({
         type: transaction?.type || 'expense',
         amount: transaction?.amount || undefined,
@@ -93,7 +91,7 @@ export function TransactionForm({
         excludeFromReports: transaction?.excludeFromReports || false,
       });
     }
-  }, [isLoaded, transaction, isActive, eventId, currency, defaultWallet, form]);
+  }, [isLoaded, isActive, eventId, currency, transaction, form]);
   
   const attachments = form.watch('attachments') || [];
   const transactionType = form.watch('type');
@@ -550,3 +548,5 @@ export function TransactionForm({
   </AlertDialog>
   );
 }
+
+    
