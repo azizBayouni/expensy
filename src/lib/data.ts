@@ -76,6 +76,7 @@ export const transactions: Transaction[] = [
     wallet: 'Debit Card',
     category: 'Movies',
     description: 'Movie tickets for two',
+    event: "Friend's Wedding",
   },
   {
     id: '6',
@@ -96,6 +97,7 @@ export const transactions: Transaction[] = [
     wallet: 'Credit Card',
     category: 'Dining Out',
     description: 'Dinner with friends',
+    event: 'Summer Vacation to Italy',
   },
   {
     id: '8',
@@ -135,6 +137,7 @@ export const categories: Category[] = [
   { id: 'cat-exp-15', name: 'Education', type: 'expense', icon: GraduationCap, parentId: null },
   { id: 'cat-exp-16', name: 'Travel', type: 'expense', icon: Plane, parentId: null },
   { id: 'cat-exp-17', name: 'Pets', type: 'expense', icon: Cat, parentId: null },
+  { id: 'cat-exp-18', name: 'Movies', type: 'expense', icon: Ticket, parentId: null },
 ];
 
 export const debts: Debt[] = [
@@ -184,6 +187,14 @@ export let events: Event[] = [
     icon: '💒',
     status: 'active',
   },
+   {
+    id: 'event-3',
+    name: 'Weekly Groceries',
+    date: '2024-07-02',
+    description: 'Weekly grocery shopping',
+    icon: '🛒',
+    status: 'active',
+  },
 ];
 
 export function updateEvents(newEvents: Event[]) {
@@ -193,7 +204,7 @@ export function updateEvents(newEvents: Event[]) {
 export let wallets: Wallet[] = [
   {
     id: 'wallet-1',
-    name: 'Main Wallet',
+    name: 'Main Bank Account',
     icon: Landmark,
     currency: 'SAR',
     balance: 1159.50,
@@ -221,6 +232,14 @@ export let wallets: Wallet[] = [
     icon: WalletIcon,
     currency: 'SAR',
     balance: 550.00,
+    isDefault: false,
+  },
+    {
+    id: 'wallet-5',
+    name: 'Debit Card',
+    icon: Banknote,
+    currency: 'SAR',
+    balance: 1200.00,
     isDefault: false,
   },
 ];

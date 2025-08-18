@@ -4,12 +4,14 @@ export type Transaction = {
   id: string;
   type: 'income' | 'expense';
   amount: number;
-  currency: 'SAR';
+  currency: 'SAR' | 'USD' | 'EUR';
   date: string;
   wallet: string;
   category: string;
   description: string;
   event?: string;
+  attachments?: { name: string, path: string }[];
+  excludeFromReports?: boolean;
 };
 
 export type Category = {
