@@ -156,6 +156,7 @@ export let debts: Debt[] = [
     status: 'unpaid',
     paidAmount: 0,
     note: 'For concert tickets',
+    paymentHistory: [],
   },
   {
     id: 'debt-2',
@@ -165,6 +166,9 @@ export let debts: Debt[] = [
     dueDate: '2024-07-25',
     status: 'partial',
     paidAmount: 100,
+    paymentHistory: [
+        { date: '2024-07-10', amount: 100 }
+    ],
   },
   {
     id: 'debt-3',
@@ -174,7 +178,10 @@ export let debts: Debt[] = [
     dueDate: '2024-06-30',
     status: 'paid',
     paidAmount: 50,
-    note: 'Lunch reimbursement'
+    note: 'Lunch reimbursement',
+    paymentHistory: [
+      { date: '2024-06-28', amount: 50 }
+    ],
   },
 ];
 

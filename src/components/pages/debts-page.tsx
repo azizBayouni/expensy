@@ -25,7 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Paperclip, Download, Trash2 } from 'lucide-react';
 import { debts as initialDebts, updateDebts } from '@/lib/data';
-import type { Debt } from '@/types';
+import type { Debt, Payment } from '@/types';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
 import {
@@ -51,6 +51,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -60,6 +61,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { Separator } from '../ui/separator';
 
 const debtSchema = z.object({
   type: z.enum(['payable', 'receivable']),
@@ -68,6 +70,7 @@ const debtSchema = z.object({
   dueDate: z.date(),
   note: z.string().optional(),
   attachments: z.array(z.any()).optional(),
+  status: z.enum(['unpaid', 'partial', 'paid']).optional(),
 });
 
 type DebtFormData = z.infer<typeof debtSchema>;
@@ -76,12 +79,18 @@ export function DebtsPage() {
   const [debts, setDebts] = useState<Debt[]>(initialDebts);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedDebt, setSelectedDebt] = useState<Debt | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<number | ''>('');
   const { toast } = useToast();
 
   const form = useForm<DebtFormData>({
     resolver: zodResolver(debtSchema),
     defaultValues: {
+      type: 'payable',
+      person: '',
       amount: '',
+      dueDate: new Date(),
+      note: '',
+      attachments: [],
     },
   });
   
@@ -127,7 +136,9 @@ export function DebtsPage() {
       dueDate: new Date(debt.dueDate),
       note: debt.note || '',
       attachments: debt.attachments || [],
+      status: debt.status,
     });
+    setPaymentAmount('');
     setIsDialogOpen(true);
   };
 
@@ -159,15 +170,50 @@ export function DebtsPage() {
             }
             return f;
         }),
+        paymentHistory: [],
       };
       saveDebts([...debts, newDebt]);
       toast({ title: 'Success', description: 'Debt added successfully.' });
     }
     setIsDialogOpen(false);
   };
+  
+  const handleAddPayment = () => {
+    if (!selectedDebt || !paymentAmount || paymentAmount <= 0) {
+      toast({ variant: 'destructive', title: 'Invalid amount', description: 'Please enter a valid payment amount.' });
+      return;
+    }
+    const remainingBalance = selectedDebt.amount - selectedDebt.paidAmount;
+    if (paymentAmount > remainingBalance) {
+      toast({ variant: 'destructive', title: 'Invalid amount', description: 'Payment cannot exceed the remaining balance.' });
+      return;
+    }
+
+    const newPayment: Payment = {
+      date: new Date().toISOString(),
+      amount: paymentAmount,
+    };
+    
+    const newPaidAmount = selectedDebt.paidAmount + paymentAmount;
+    const newStatus = newPaidAmount >= selectedDebt.amount ? 'paid' : 'partial';
+
+    const updatedDebt: Debt = {
+      ...selectedDebt,
+      paidAmount: newPaidAmount,
+      status: newStatus,
+      paymentHistory: [...(selectedDebt.paymentHistory || []), newPayment],
+    };
+
+    saveDebts(debts.map(d => d.id === updatedDebt.id ? updatedDebt : d));
+    setSelectedDebt(updatedDebt);
+    setPaymentAmount('');
+    toast({ title: 'Success', description: 'Payment added successfully.' });
+  }
 
   const payables = debts.filter((d) => d.type === 'payable');
   const receivables = debts.filter((d) => d.type === 'receivable');
+  
+  const remainingBalance = selectedDebt ? selectedDebt.amount - selectedDebt.paidAmount : 0;
 
   const DebtTable = ({
     list,
@@ -284,13 +330,61 @@ export function DebtsPage() {
     </Tabs>
 
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{selectedDebt ? 'Edit Debt' : 'Add New Debt'}</DialogTitle>
             <DialogDescription>
-              Record a new payable or receivable debt.
+              {selectedDebt ? 'Update details or add payments for this debt.' : 'Record a new payable or receivable debt.'}
             </DialogDescription>
           </DialogHeader>
+          
+          {selectedDebt && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground">Remaining Balance</p>
+                  <p className="text-2xl font-bold">{remainingBalance.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
+                  <p className="text-xs text-muted-foreground">Originally {selectedDebt.amount.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
+              </div>
+
+              {remainingBalance > 0 && (
+                <div className="space-y-2">
+                  <Label>Add a Payment</Label>
+                  <div className="flex gap-2">
+                    <Input 
+                      type="number" 
+                      placeholder="Enter amount" 
+                      value={paymentAmount}
+                      onChange={(e) => setPaymentAmount(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                    />
+                    <Button onClick={handleAddPayment}>
+                      <PlusCircle className="mr-2 h-4 w-4" /> Add
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+               {selectedDebt.paymentHistory && selectedDebt.paymentHistory.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-medium">Payment History</h4>
+                  <div className="border rounded-md">
+                    {selectedDebt.paymentHistory.map((p, i) => (
+                      <div key={i} className="flex justify-between items-center p-2 border-b last:border-b-0">
+                        <span className="text-sm">{format(new Date(p.date), 'dd MMM yyyy')}</span>
+                        <span className="text-sm font-medium">{p.amount.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between items-center p-2 font-semibold bg-muted/50">
+                        <span>Total Paid</span>
+                        <span>{selectedDebt.paidAmount.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <Separator />
+            </div>
+          )}
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
               <FormField
@@ -341,7 +435,7 @@ export function DebtsPage() {
                 name="amount"
                 render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Amount</FormLabel>
+                      <FormLabel>Original Amount</FormLabel>
                         <div className="relative">
                            <FormControl>
                              <Input type="number" placeholder="100.00" {...field} className="pr-16" />
@@ -466,7 +560,64 @@ export function DebtsPage() {
                   </FormItem>
                 )}
               />
-              <DialogFooter>
+              {selectedDebt && (
+                 <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          className="flex space-x-4"
+                        >
+                          <FormItem className="flex items-center space-x-2">
+                            <FormControl>
+                              <RadioGroupItem value="unpaid" />
+                            </FormControl>
+                            <FormLabel>Unpaid</FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-2">
+                            <FormControl>
+                              <RadioGroupItem value="partial" />
+                            </FormControl>
+                            <FormLabel>Partial</FormLabel>
+                          </FormItem>
+                           <FormItem className="flex items-center space-x-2">
+                            <FormControl>
+                              <RadioGroupItem value="paid" />
+                            </FormControl>
+                            <FormLabel>Paid</FormLabel>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              <DialogFooter className="pt-4">
+                 {selectedDebt && (
+                  <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                         <Button type="button" variant="destructive" className="mr-auto">Delete</Button>
+                      </AlertDialogTrigger>
+                       <AlertDialogContent>
+                          <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                               This action cannot be undone. This will permanently delete this debt record.
+                              </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => {/* TODO: Implement Delete */}}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                      </AlertDialogContent>
+                  </AlertDialog>
+                )}
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
                 <Button type="submit">{selectedDebt ? 'Save Changes' : 'Save Debt'}</Button>
               </DialogFooter>

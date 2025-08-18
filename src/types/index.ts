@@ -23,6 +23,11 @@ export type Category = {
   parentId?: string | null;
 };
 
+export type Payment = {
+  date: string;
+  amount: number;
+};
+
 export type Debt = {
   id:string;
   type: 'payable' | 'receivable';
@@ -33,6 +38,7 @@ export type Debt = {
   paidAmount: number;
   note?: string;
   attachments?: { name: string, path: string }[];
+  paymentHistory?: Payment[];
 };
 
 export type Event = {
