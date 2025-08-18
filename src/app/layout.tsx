@@ -1,7 +1,9 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AppShell } from '@/components/layout/app-shell';
+import { TravelModeProvider } from '@/hooks/use-travel-mode';
 
 export const metadata: Metadata = {
   title: 'Expensy',
@@ -24,7 +26,9 @@ export default function RootLayout({
         ></link>
       </head>
       <body className="font-body antialiased">
-        <AppShell>{children}</AppShell>
+        <TravelModeProvider>
+          <AppShell>{children}</AppShell>
+        </TravelModeProvider>
         <Toaster />
       </body>
     </html>

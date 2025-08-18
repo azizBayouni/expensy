@@ -38,6 +38,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import * as React from 'react';
 import { Textarea } from './ui/textarea';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { useTravelMode } from '@/hooks/use-travel-mode';
+import { Skeleton } from './ui/skeleton';
 
 const formSchema = z.object({
   type: z.enum(['income', 'expense']),
@@ -63,30 +65,35 @@ const top100Currencies = [
   'SAR', 'USD', 'EUR', 'JPY', 'GBP', 'AUD', 'CAD', 'CHF', 'CNY', 'HKD', 'NZD', 'SEK', 'KRW', 'SGD', 'NOK', 'MXN', 'INR', 'RUB', 'ZAR', 'TRY', 'BRL', 'TWD', 'DKK', 'PLN', 'THB', 'IDR', 'HUF', 'CZK', 'ILS', 'CLP', 'PHP', 'AED', 'COP', 'MYR', 'RON', 'UAH', 'VND', 'ARS', 'NGN', 'EGP', 'IQD', 'DZD', 'MAD', 'KZT', 'QAR', 'KWD', 'OMR', 'BHD', 'JOD', 'LBP', 'SYP', 'YER', 'IRR', 'PKR', 'BDT', 'LKR', 'NPR', 'AFN', 'MMK', 'KHR', 'LAK', 'MNT', 'UZS', 'TJS', 'KGS', 'TMT', 'GEL', 'AZN', 'AMD', 'BYN', 'MDL', 'RSD', 'BAM', 'MKD', 'ALL', 'ISK', 'GHS', 'KES', 'UGX', 'TZS', 'ZMW', 'ZWL', 'GMD', 'SLL', 'LRD', 'CVE', 'GNF', 'XOF', 'XAF', 'CDF', 'BIF', 'RWF', 'SOS', 'SDG', 'LYD', 'TND'
 ];
 
-
 export function TransactionForm({
   onSubmit,
   transaction,
   onDelete,
   onCancel,
 }: TransactionFormProps) {
+  const { isLoaded, isActive, eventId, currency } = useTravelMode();
   const defaultWallet = wallets.find((w) => w.isDefault)?.name;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      type: transaction?.type || 'expense',
-      amount: transaction?.amount || '',
-      currency: transaction?.currency || 'SAR',
-      wallet: transaction?.wallet || defaultWallet || '',
-      category: transaction?.category || '',
-      date: transaction ? new Date(transaction.date) : new Date(),
-      description: transaction?.description || '',
-      event: transaction?.event || 'null',
-      attachments: transaction?.attachments || [],
-      excludeFromReports: transaction?.excludeFromReports || false,
-    },
   });
+
+  React.useEffect(() => {
+    if (isLoaded) {
+      form.reset({
+        type: transaction?.type || 'expense',
+        amount: transaction?.amount || undefined,
+        currency: transaction?.currency || (isActive ? currency : 'SAR'),
+        wallet: transaction?.wallet || defaultWallet || '',
+        category: transaction?.category || '',
+        date: transaction ? new Date(transaction.date) : new Date(),
+        description: transaction?.description || '',
+        event: transaction?.event || (isActive ? eventId : undefined) || 'null',
+        attachments: transaction?.attachments || [],
+        excludeFromReports: transaction?.excludeFromReports || false,
+      });
+    }
+  }, [isLoaded, transaction, isActive, eventId, currency, defaultWallet, form]);
   
   const attachments = form.watch('attachments') || [];
   const transactionType = form.watch('type');
@@ -127,6 +134,24 @@ export function TransactionForm({
   };
   
   const filteredCategories = categories.filter(c => c.type === transactionType);
+
+  if (!isLoaded) {
+    return (
+        <div className="space-y-4 py-4">
+            <Skeleton className="h-10 w-full" />
+            <div className="grid grid-cols-2 gap-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+            </div>
+             <div className="grid grid-cols-2 gap-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+            </div>
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-20 w-full" />
+        </div>
+    )
+  }
 
 
   return (
@@ -399,7 +424,7 @@ export function TransactionForm({
                     <SelectContent>
                       <SelectItem value="null">None</SelectItem>
                       {events.map((event) => (
-                        <SelectItem key={event.id} value={event.name}>
+                        <SelectItem key={event.id} value={event.id}>
                           {event.name}
                         </SelectItem>
                       ))}

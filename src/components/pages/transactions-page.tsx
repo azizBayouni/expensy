@@ -34,7 +34,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { TransactionForm } from '@/components/transaction-form';
-import { transactions as initialTransactions, categories, wallets, updateTransactions } from '@/lib/data';
+import { transactions as initialTransactions, categories, wallets, updateTransactions, events as eventData } from '@/lib/data';
 import type { Transaction } from '@/types';
 import { cn } from '@/lib/utils';
 import {
@@ -49,6 +49,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { useTravelMode } from '@/hooks/use-travel-mode';
 
 export function TransactionsPage() {
   const [transactions, setTransactions] =
@@ -61,6 +62,8 @@ export function TransactionsPage() {
   const [isSheetOpen, setSheetOpen] = React.useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     React.useState<Transaction | null>(null);
+
+  const { isLoaded: isTravelModeLoaded } = useTravelMode();
 
   const saveTransactions = (newTransactions: Transaction[]) => {
     setTransactions(newTransactions);
@@ -231,7 +234,7 @@ export function TransactionsPage() {
             </PopoverContent>
           </Popover>
         </div>
-        <Button onClick={handleAddTransaction} className="w-full md:w-auto">
+        <Button onClick={handleAddTransaction} className="w-full md:w-auto" disabled={!isTravelModeLoaded}>
           <PlusCircle className="w-4 h-4 mr-2" />
           Add Transaction
         </Button>
@@ -251,7 +254,9 @@ export function TransactionsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredTransactions.map((transaction) => (
+            {filteredTransactions.map((transaction) => {
+              const event = eventData.find(e => e.name === transaction.event);
+              return (
               <TableRow key={transaction.id} onClick={() => handleEditTransaction(transaction)} className="cursor-pointer">
                 <TableCell>{format(new Date(transaction.date), 'dd MMM yyyy')}</TableCell>
                 <TableCell className="font-medium">
@@ -261,7 +266,7 @@ export function TransactionsPage() {
                   <Badge variant="outline">{transaction.category}</Badge>
                 </TableCell>
                 <TableCell>{transaction.wallet}</TableCell>
-                <TableCell>{transaction.event || '—'}</TableCell>
+                <TableCell>{event?.name || '—'}</TableCell>
                 <TableCell
                   className={cn(
                     'text-right font-semibold',
@@ -297,7 +302,7 @@ export function TransactionsPage() {
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
-            ))}
+            )})}
           </TableBody>
         </Table>
       </div>
