@@ -77,11 +77,28 @@ export function SettingsPage() {
   };
 
   const handleApiSave = async (data: z.infer<typeof apiSchema>) => {
-    localStorage.setItem('exchangeRateApiKey', data.apiKey);
-    toast({
-      title: 'API Key Saved',
-      description: 'The API key has been saved successfully.',
-    });
+    try {
+      const response = await fetch(`https://v6.exchangerate-api.com/v6/${data.apiKey}/latest/USD`);
+      if (!response.ok) {
+        throw new Error('Verification failed. Please check your API key.');
+      }
+      const responseData = await response.json();
+      if (responseData.result === 'success') {
+        localStorage.setItem('exchangeRateApiKey', data.apiKey);
+        toast({
+          title: 'API Key Verified',
+          description: 'Your ExchangeRate-API key has been successfully verified and saved.',
+        });
+      } else {
+        throw new Error(responseData['error-type'] || 'Invalid API key.');
+      }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'API Key Error',
+        description: error.message || 'Failed to verify API key. Please try again.',
+      });
+    }
   };
   
   const handleDownloadTemplate = () => {
