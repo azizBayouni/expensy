@@ -582,43 +582,41 @@ export function SettingsPage() {
 
       <AlertDialog open={deleteStep > 0} onOpenChange={(open) => !open && setDeleteStep(0)}>
         <AlertDialogContent>
-            {deleteStep === 1 && (
-                 <>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This action is permanent and cannot be undone. This will delete all your {deleteType}.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setDeleteStep(0)}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => setDeleteStep(2)}>Continue</AlertDialogAction>
-                    </AlertDialogFooter>
-                 </>
-            )}
-             {deleteStep === 2 && (
-                 <>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Final Confirmation</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            To confirm, please type "DELETE" in the box below.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <div className="my-4">
-                        <Input 
-                            value={confirmationInput}
-                            onChange={(e) => setConfirmationInput(e.target.value)}
-                            placeholder='Type "DELETE"'
-                        />
-                    </div>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setDeleteStep(0)}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete}>Confirm Deletion</AlertDialogAction>
-                    </AlertDialogFooter>
-                 </>
-            )}
+          <div style={{ display: deleteStep === 1 ? 'block' : 'none' }}>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action is permanent and cannot be undone. This will delete all your {deleteType}.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setDeleteStep(0)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => setDeleteStep(2)}>Continue</AlertDialogAction>
+            </AlertDialogFooter>
+          </div>
+          <div style={{ display: deleteStep === 2 ? 'block' : 'none' }}>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Final Confirmation</AlertDialogTitle>
+              <AlertDialogDescription>
+                To confirm, please type "DELETE" in the box below.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="my-4">
+              <Input
+                value={confirmationInput}
+                onChange={(e) => setConfirmationInput(e.target.value)}
+                placeholder='Type "DELETE"'
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setDeleteStep(0)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete}>Confirm Deletion</AlertDialogAction>
+            </AlertDialogFooter>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </div>
   );
 }
+
+    
