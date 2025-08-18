@@ -46,7 +46,7 @@ const formSchema = z.object({
   date: z.date(),
   description: z.string().optional(),
   event: z.string().optional(),
-  attachments: z.array(z.instanceof(File)).optional(),
+  attachments: z.array(z.any()).optional(),
   excludeFromReports: z.boolean().optional(),
 });
 
@@ -74,24 +74,24 @@ export function TransactionForm({
       date: transaction ? new Date(transaction.date) : new Date(),
       description: transaction?.description || '',
       event: transaction?.event || 'null',
-      attachments: [],
+      attachments: transaction?.attachments || [],
       excludeFromReports: transaction?.excludeFromReports || false,
     },
   });
-
-  const transactionType = form.watch('type');
+  
   const attachments = form.watch('attachments') || [];
-
-  const filteredCategories = categories.filter(
-    (cat) => cat.type === transactionType
-  );
 
   function handleFormSubmit(values: z.infer<typeof formSchema>) {
     const fullTransaction: Transaction = {
       id: transaction?.id || `trx-${Date.now()}`,
       ...values,
       date: format(values.date, 'yyyy-MM-dd'),
-      attachments: values.attachments?.map(f => ({ name: f.name, path: URL.createObjectURL(f) })),
+      attachments: values.attachments?.map(f => {
+        if (f instanceof File) {
+            return { name: f.name, path: URL.createObjectURL(f) };
+        }
+        return f;
+      }),
       event: values.event === 'null' ? undefined : values.event,
     };
     onSubmit(fullTransaction);
@@ -102,6 +102,20 @@ export function TransactionForm({
       onDelete(transaction.id);
     }
   };
+  
+  const handleFileDisplay = (file: any) => {
+    if (file instanceof File) {
+        return { name: file.name, url: URL.createObjectURL(file) };
+    }
+    return { name: file.name, url: file.path };
+  }
+  
+  const handleFileRemove = (indexToRemove: number) => {
+    const currentAttachments = form.getValues('attachments') || [];
+    const updatedAttachments = currentAttachments.filter((_, index) => index !== indexToRemove);
+    form.setValue('attachments', updatedAttachments);
+  };
+
 
   return (
     <AlertDialog>
@@ -219,7 +233,7 @@ export function TransactionForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {filteredCategories.map((cat) => (
+                      {categories.map((cat) => (
                         <SelectItem key={cat.id} value={cat.name}>
                           {cat.name}
                         </SelectItem>
@@ -345,25 +359,28 @@ export function TransactionForm({
                     </FormControl>
                     { attachments.length > 0 && (
                         <div className="space-y-2 pt-2">
-                         {attachments.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 border rounded-md">
-                            <span className="text-sm truncate">{file.name}</span>
-                            <div className="flex items-center gap-2">
-                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => window.open(URL.createObjectURL(file), '_blank')}>
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <Button
-                               type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => field.onChange(attachments.filter((_, i) => i !== index))}
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            </div>
-                          </div>
-                         ))}
+                         {attachments.map((file, index) => {
+                           const { name, url } = handleFileDisplay(file);
+                           return (
+                              <div key={index} className="flex items-center justify-between p-2 border rounded-md">
+                                <span className="text-sm truncate">{name}</span>
+                                <div className="flex items-center gap-2">
+                                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => window.open(url, '_blank')}>
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                   type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => handleFileRemove(index)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </div>
+                              </div>
+                           )
+                         })}
                         </div>
                     )}
                     <FormMessage />
