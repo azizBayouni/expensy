@@ -146,20 +146,6 @@ function getIconComponent(iconName: string | undefined): LucideIcon {
   return Smile;
 }
 
-function getIconName(IconComponent: LucideIcon | string): string {
-    if (typeof IconComponent !== 'function') {
-        return IconComponent;
-    }
-    for (const name in LucideIcons) {
-        if (Object.prototype.hasOwnProperty.call(LucideIcons, name)) {
-            if (LucideIcons[name as keyof typeof LucideIcons] === IconComponent) {
-                return name;
-            }
-        }
-    }
-    return 'Smile'; 
-}
-
 function buildHierarchy(categories: Category[]): (Category & { children: Category[] })[] {
   const cats = JSON.parse(JSON.stringify(categories));
   const categoryMap = new Map(cats.map((c: any) => [c.id, { ...c, children: [] }]));
@@ -223,12 +209,12 @@ export function CategoriesPage() {
 
   const openEditDialog = (category: Category) => {
     setSelectedCategory(category);
-    const iconName = getIconName(category.icon);
-
+    const iconValue = typeof category.icon === 'string' ? category.icon : 'Smile';
+    
     form.reset({
       name: category.name,
       type: category.type,
-      icon: iconName,
+      icon: iconValue,
       parentId: category.parentId || null,
     });
     setIsDialogOpen(true);
@@ -295,6 +281,8 @@ export function CategoriesPage() {
         const updatedCategory = { ...selectedCategory, ...categoryData };
         if (typeof categoryData.icon === 'string' && !isEmoji) {
             updatedCategory.icon = getIconComponent(categoryData.icon as string);
+        } else {
+            updatedCategory.icon = data.icon;
         }
         setCategories(
             categories.map((c) => (c.id === selectedCategory.id ? updatedCategory : c))
@@ -307,6 +295,8 @@ export function CategoriesPage() {
         };
         if (typeof newCategory.icon === 'string' && !isEmoji) {
             newCategory.icon = getIconComponent(newCategory.icon as string);
+        } else {
+            newCategory.icon = data.icon;
         }
         setCategories([...categories, newCategory]);
         toast({ title: 'Success', description: 'Category created successfully.' });
