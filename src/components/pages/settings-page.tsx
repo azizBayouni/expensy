@@ -15,15 +15,15 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { transactions, categories, wallets, debts, updateTransactions, updateCategories, top100Currencies, events } from '@/lib/data';
+import { transactions, categories, wallets, debts, updateTransactions, updateCategories, top100Currencies, events, updateEvents, updateDebts, updateWallets } from '@/lib/data';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 import type { Category, Transaction } from '@/types';
 import { format } from 'date-fns';
+import { Label } from '@/components/ui/label';
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Name is required.'),
@@ -335,12 +335,11 @@ export function SettingsPage() {
         reader.onload = (e) => {
             try {
                 const restoredData = JSON.parse(e.target?.result as string);
-                // Here you would typically update your state management solution
-                console.log("Restored Data:", restoredData);
-                // A real implementation would update state and data stores
-                // updateTransactions(restoredData.transactions || []);
-                // updateCategories(restoredData.categories || []);
-                // etc.
+                updateTransactions(restoredData.transactions || []);
+                updateCategories(restoredData.categories || []);
+                updateWallets(restoredData.wallets || []);
+                updateDebts(restoredData.debts || []);
+                updateEvents(restoredData.events || []);
                 toast({ title: "Restore Successful", description: "Your data has been restored. The page will now reload." });
                 setTimeout(() => window.location.reload(), 2000);
             } catch (error) {
@@ -368,6 +367,7 @@ export function SettingsPage() {
     
     if (deleteType === 'transactions') {
         updateTransactions([]);
+        updateDebts([]);
     } else if (deleteType === 'categories') {
         updateCategories([]);
     }
@@ -622,5 +622,3 @@ export function SettingsPage() {
     </div>
   );
 }
-
-    
