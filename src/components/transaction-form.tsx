@@ -73,14 +73,16 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const { isLoaded, isActive, eventId, currency } = useTravelMode();
   
-  const form = useForm<z.infer<typeof formSchema>>();
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+  });
 
   React.useEffect(() => {
     if (isLoaded) {
       const defaultWallet = wallets.find((w) => w.isDefault)?.name;
       form.reset({
         type: transaction?.type || 'expense',
-        amount: transaction?.amount || undefined,
+        amount: transaction?.amount || 0,
         currency: transaction?.currency || (isActive ? currency : 'SAR'),
         wallet: transaction?.wallet || defaultWallet || '',
         category: transaction?.category || '',
