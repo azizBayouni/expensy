@@ -22,7 +22,7 @@ import { transactions, categories, wallets, debts, updateTransactions, updateCat
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
-import type { Transaction } from '@/types';
+import type { Category, Transaction } from '@/types';
 import { format } from 'date-fns';
 
 const profileSchema = z.object({
@@ -225,6 +225,78 @@ export function SettingsPage() {
     toast({ title: "Export Successful" });
   };
   
+  const handleDownloadCategoryTemplate = () => {
+    const header = "id,name,type,icon,parentId\n";
+    const blob = new Blob([header], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', 'category-import-template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  
+  const handleImportCategories = () => {
+    if (!categoryImportFile) return;
+
+    Papa.parse(categoryImportFile, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const newCategories: Category[] = [];
+        const existingCategories = [...categories];
+        const data = results.data as any[];
+
+        for (let i = 0; i < data.length; i++) {
+          const row = data[i];
+          const rowNum = i + 2;
+
+          if (!row.id || !row.name || !row.type || !row.icon) {
+            toast({ variant: 'destructive', title: 'Import Failed', description: `Missing required fields on row ${rowNum}.` });
+            if(categoryImportRef.current) categoryImportRef.current.value = "";
+            setCategoryImportFile(null);
+            return;
+          }
+
+          if (row.type !== 'income' && row.type !== 'expense') {
+            toast({ variant: 'destructive', title: 'Import Failed', description: `Invalid category type '${row.type}' on row ${rowNum}.` });
+            if(categoryImportRef.current) categoryImportRef.current.value = "";
+            setCategoryImportFile(null);
+            return;
+          }
+
+          if (row.parentId) {
+            const parentExists = existingCategories.some(c => c.id === row.parentId);
+            if (!parentExists) {
+              toast({ variant: 'destructive', title: 'Import Failed', description: `Parent category with id '${row.parentId}' not found for row ${rowNum}.` });
+              if(categoryImportRef.current) categoryImportRef.current.value = "";
+              setCategoryImportFile(null);
+              return;
+            }
+          }
+
+          newCategories.push({
+            id: row.id,
+            name: row.name,
+            type: row.type,
+            icon: row.icon,
+            parentId: row.parentId || null,
+          });
+        }
+        
+        updateCategories([...existingCategories, ...newCategories]);
+        toast({ title: 'Import Successful', description: `${newCategories.length} categories imported.` });
+        if(categoryImportRef.current) categoryImportRef.current.value = "";
+        setCategoryImportFile(null);
+      },
+      error: (error) => {
+        toast({ variant: 'destructive', title: 'Import Error', description: `Failed to parse CSV file: ${error.message}` });
+        if(categoryImportRef.current) categoryImportRef.current.value = "";
+        setCategoryImportFile(null);
+      }
+    });
+  };
+  
   const handleExportCategories = () => {
      const csv = Papa.unparse(categories.map(c => ({...c, icon: typeof c.icon === 'string' ? c.icon : (c.icon as any).displayName })));
      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -242,6 +314,7 @@ export function SettingsPage() {
         categories,
         wallets,
         debts,
+        events
     };
     const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(backupData, null, 2))}`;
     const link = document.createElement("a");
@@ -440,9 +513,22 @@ export function SettingsPage() {
                         Use the template to import categories.
                     </p>
                      <div className='flex gap-2'>
-                        <Button variant="outline" size="sm" disabled>Download Template</Button>
-                        <Input type="file" className="text-xs" accept=".csv" disabled />
+                        <Button variant="outline" size="sm" onClick={handleDownloadCategoryTemplate}>Download Template</Button>
+                        <Input 
+                          ref={categoryImportRef}
+                          type="file" 
+                          className="text-xs" 
+                          accept=".csv"
+                          onChange={(e) => setCategoryImportFile(e.target.files?.[0] || null)}
+                        />
                     </div>
+                     <Button 
+                        onClick={handleImportCategories}
+                        disabled={!categoryImportFile}
+                        className="mt-2 w-full"
+                    >
+                        Import from CSV
+                    </Button>
                 </div>
                  <div className="space-y-2">
                     <Label>Export Categories</Label>
