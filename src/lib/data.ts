@@ -216,3 +216,11 @@ export let wallets: Wallet[] = [
     isDefault: false,
   },
 ];
+
+// This is a workaround to "save" data changes in the prototype.
+// In a real app, this would be handled by a backend API.
+export function updateWallets(newWallets: Wallet[]) {
+  wallets = newWallets;
+}
+
+    

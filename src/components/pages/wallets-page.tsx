@@ -22,7 +22,7 @@ import {
   HelpCircle,
   Star,
 } from 'lucide-react';
-import { wallets as initialWallets, transactions } from '@/lib/data';
+import { wallets as initialWallets, transactions, updateWallets } from '@/lib/data';
 import type { Wallet } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -114,6 +114,11 @@ export function WalletsPage() {
     },
   });
 
+  const updateAndSaveWallets = (newWallets: Wallet[]) => {
+    setWallets(newWallets);
+    updateWallets(newWallets);
+  };
+
   const openAddDialog = () => {
     setSelectedWallet(null);
     form.reset({
@@ -155,7 +160,8 @@ export function WalletsPage() {
 
   const handleDeleteConfirm = () => {
     if (walletToDelete) {
-      setWallets(wallets.filter((w) => w.id !== walletToDelete.id));
+      const newWallets = wallets.filter((w) => w.id !== walletToDelete.id);
+      updateAndSaveWallets(newWallets);
       toast({ title: 'Success', description: 'Wallet deleted successfully.' });
       setIsDeleteAlertOpen(false);
       setWalletToDelete(null);
@@ -169,9 +175,8 @@ export function WalletsPage() {
         name: data.name,
         icon: getIconComponent(data.icon),
       };
-      setWallets(
-        wallets.map((w) => (w.id === selectedWallet.id ? updatedWallet : w))
-      );
+      const newWallets = wallets.map((w) => (w.id === selectedWallet.id ? updatedWallet : w));
+      updateAndSaveWallets(newWallets);
       toast({ title: 'Success', description: 'Wallet updated successfully.' });
     } else {
       const newWallet: Wallet = {
@@ -182,19 +187,19 @@ export function WalletsPage() {
         balance: 0,
         isDefault: false,
       };
-      setWallets([...wallets, newWallet]);
+      const newWallets = [...wallets, newWallet];
+      updateAndSaveWallets(newWallets);
       toast({ title: 'Success', description: 'Wallet created successfully.' });
     }
     setIsDialogOpen(false);
   };
 
   const handleSetDefault = (walletId: string) => {
-    setWallets(
-      wallets.map((w) => ({
+    const newWallets = wallets.map((w) => ({
         ...w,
         isDefault: w.id === walletId,
-      }))
-    );
+    }));
+    updateAndSaveWallets(newWallets);
     toast({ title: 'Success', description: 'Default wallet updated.' });
   };
 
@@ -371,3 +376,5 @@ export function WalletsPage() {
     </div>
   );
 }
+
+    
