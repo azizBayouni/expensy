@@ -63,6 +63,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const debtSchema = z.object({
   type: z.enum(['payable', 'receivable']),
@@ -331,301 +332,307 @@ export function DebtsPage() {
     </Tabs>
 
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md grid-rows-[auto_minmax(0,1fr)_auto] p-0 max-h-[90vh]">
+          <DialogHeader className="p-6 pb-0">
             <DialogTitle>{selectedDebt ? 'Edit Debt' : 'Add New Debt'}</DialogTitle>
             <DialogDescription>
               {selectedDebt ? 'Update details or add payments for this debt.' : 'Record a new payable or receivable debt.'}
             </DialogDescription>
           </DialogHeader>
           
-          {selectedDebt && (
-            <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-muted/50">
-                  <p className="text-sm text-muted-foreground">Remaining Balance</p>
-                  <p className="text-2xl font-bold">{remainingBalance.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
-                  <p className="text-xs text-muted-foreground">Originally {selectedDebt.amount.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
-              </div>
-
-              {remainingBalance > 0 && (
-                <div className="space-y-2">
-                  <Label>Add a Payment</Label>
-                  <div className="flex gap-2">
-                    <Input 
-                      type="number" 
-                      placeholder="Enter amount" 
-                      value={paymentAmount}
-                      onChange={(e) => setPaymentAmount(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                    />
-                    <Button onClick={handleAddPayment}>
-                      <PlusCircle className="mr-2 h-4 w-4" /> Add
-                    </Button>
-                  </div>
-                </div>
-              )}
-              
-               {selectedDebt.paymentHistory && selectedDebt.paymentHistory.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="font-medium">Payment History</h4>
-                  <div className="border rounded-md">
-                    {selectedDebt.paymentHistory.map((p, i) => (
-                      <div key={i} className="flex justify-between items-center p-2 border-b last:border-b-0">
-                        <span className="text-sm">{format(new Date(p.date), 'dd MMM yyyy')}</span>
-                        <span className="text-sm font-medium">{p.amount.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</span>
-                      </div>
-                    ))}
-                    <div className="flex justify-between items-center p-2 font-semibold bg-muted/50">
-                        <span>Total Paid</span>
-                        <span>{selectedDebt.paidAmount.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <Separator />
-            </div>
-          )}
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        value={field.value}
-                        className="flex space-x-4"
-                      >
-                        <FormItem className="flex items-center space-x-2">
-                          <FormControl>
-                            <RadioGroupItem value="payable" />
-                          </FormControl>
-                          <FormLabel>Payable (I owe)</FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-2">
-                          <FormControl>
-                            <RadioGroupItem value="receivable" />
-                          </FormControl>
-                          <FormLabel>Receivable (I am owed)</FormLabel>
-                        </FormItem>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="person"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Person / Entity</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. John Doe, Car Loan" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Original Amount</FormLabel>
-                        <div className="relative">
-                           <FormControl>
-                             <Input type="number" placeholder="100.00" {...field} className="pr-16" />
-                           </FormControl>
-                           <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">
-                            SAR
-                           </div>
-                        </div>
-                      <FormMessage />
-                    </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="dueDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Due Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={'outline'}
-                            className={cn(
-                              'pl-3 text-left font-normal',
-                              !field.value && 'text-muted-foreground'
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, 'PPP')
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="note"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Note (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="e.g. For concert tickets" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="attachments"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Attachments</FormLabel>
-                    <FormControl>
-                       <div className="flex items-center gap-2">
-                         <Input
-                            type="file"
-                            id="file-upload-debt"
-                            className="hidden"
-                            multiple
-                            onChange={(e) => {
-                               const currentFiles = field.value || [];
-                               const newFiles = Array.from(e.target.files || []);
-                               field.onChange([...currentFiles, ...newFiles]);
-                            }}
-                         />
-                         <label htmlFor="file-upload-debt" className={cn(
-                           "flex items-center gap-2 cursor-pointer",
-                            "h-10 px-4 py-2 text-sm font-medium",
-                           "border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md"
-                         )}>
-                           <Paperclip className="h-4 w-4" />
-                           Add Attachment
-                         </label>
-                       </div>
-                    </FormControl>
-                    { attachments.length > 0 && (
-                        <div className="space-y-2 pt-2">
-                         {attachments.map((file, index) => {
-                           const { name, url } = handleFileDisplay(file);
-                           return (
-                              <div key={index} className="flex items-center justify-between p-2 border rounded-md">
-                                <span className="text-sm truncate">{name}</span>
-                                <div className="flex items-center gap-2">
-                                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6" asChild>
-                                    <a href={url} target="_blank" rel="noopener noreferrer">
-                                      <Download className="h-4 w-4" />
-                                    </a>
-                                  </Button>
-                                  <Button
-                                   type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={() => handleFileRemove(index)}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-red-500" />
-                                  </Button>
-                                </div>
-                              </div>
-                           )
-                         })}
-                        </div>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <ScrollArea className="overflow-y-auto">
+            <div className="p-6 space-y-4">
               {selectedDebt && (
-                 <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          className="flex space-x-4"
-                        >
-                          <FormItem className="flex items-center space-x-2">
-                            <FormControl>
-                              <RadioGroupItem value="unpaid" />
-                            </FormControl>
-                            <FormLabel>Unpaid</FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-2">
-                            <FormControl>
-                              <RadioGroupItem value="partial" />
-                            </FormControl>
-                            <FormLabel>Partial</FormLabel>
-                          </FormItem>
-                           <FormItem className="flex items-center space-x-2">
-                            <FormControl>
-                              <RadioGroupItem value="paid" />
-                            </FormControl>
-                            <FormLabel>Paid</FormLabel>
-                          </FormItem>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg bg-muted/50">
+                      <p className="text-sm text-muted-foreground">Remaining Balance</p>
+                      <p className="text-2xl font-bold">{remainingBalance.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
+                      <p className="text-xs text-muted-foreground">Originally {selectedDebt.amount.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
+                  </div>
+
+                  {remainingBalance > 0 && (
+                    <div className="space-y-2">
+                      <Label>Add a Payment</Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          type="number" 
+                          placeholder="Enter amount" 
+                          value={paymentAmount}
+                          onChange={(e) => setPaymentAmount(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                        />
+                        <Button onClick={handleAddPayment}>
+                          <PlusCircle className="mr-2 h-4 w-4" /> Add
+                        </Button>
+                      </div>
+                    </div>
                   )}
-                />
+                  
+                   {selectedDebt.paymentHistory && selectedDebt.paymentHistory.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Payment History</h4>
+                      <div className="border rounded-md">
+                        {selectedDebt.paymentHistory.map((p, i) => (
+                          <div key={i} className="flex justify-between items-center p-2 border-b last:border-b-0">
+                            <span className="text-sm">{format(new Date(p.date), 'dd MMM yyyy')}</span>
+                            <span className="text-sm font-medium">{p.amount.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</span>
+                          </div>
+                        ))}
+                        <div className="flex justify-between items-center p-2 font-semibold bg-muted/50">
+                            <span>Total Paid</span>
+                            <span>{selectedDebt.paidAmount.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <Separator />
+                </div>
               )}
-              <DialogFooter className="pt-4">
-                 {selectedDebt && (
-                  <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                         <Button type="button" variant="destructive" className="mr-auto">Delete</Button>
-                      </AlertDialogTrigger>
-                       <AlertDialogContent>
-                          <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                               This action cannot be undone. This will permanently delete this debt record.
-                              </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => {/* TODO: Implement Delete */}}>Delete</AlertDialogAction>
-                          </AlertDialogFooter>
-                      </AlertDialogContent>
-                  </AlertDialog>
-                )}
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                <Button type="submit">{selectedDebt ? 'Save Changes' : 'Save Debt'}</Button>
-              </DialogFooter>
-            </form>
-          </Form>
+
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Type</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            className="flex space-x-4"
+                          >
+                            <FormItem className="flex items-center space-x-2">
+                              <FormControl>
+                                <RadioGroupItem value="payable" />
+                              </FormControl>
+                              <FormLabel>Payable (I owe)</FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-2">
+                              <FormControl>
+                                <RadioGroupItem value="receivable" />
+                              </FormControl>
+                              <FormLabel>Receivable (I am owed)</FormLabel>
+                            </FormItem>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="person"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Person / Entity</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. John Doe, Car Loan" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="amount"
+                    render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Original Amount</FormLabel>
+                            <div className="relative">
+                               <FormControl>
+                                 <Input type="number" placeholder="100.00" {...field} className="pr-16" />
+                               </FormControl>
+                               <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">
+                                SAR
+                               </div>
+                            </div>
+                          <FormMessage />
+                        </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="dueDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Due Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={'outline'}
+                                className={cn(
+                                  'pl-3 text-left font-normal',
+                                  !field.value && 'text-muted-foreground'
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, 'PPP')
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                   <FormField
+                    control={form.control}
+                    name="note"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Note (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="e.g. For concert tickets" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                   <FormField
+                    control={form.control}
+                    name="attachments"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Attachments</FormLabel>
+                        <FormControl>
+                           <div className="flex items-center gap-2">
+                             <Input
+                                type="file"
+                                id="file-upload-debt"
+                                className="hidden"
+                                multiple
+                                onChange={(e) => {
+                                   const currentFiles = field.value || [];
+                                   const newFiles = Array.from(e.target.files || []);
+                                   field.onChange([...currentFiles, ...newFiles]);
+                                }}
+                             />
+                             <label htmlFor="file-upload-debt" className={cn(
+                               "flex items-center gap-2 cursor-pointer",
+                                "h-10 px-4 py-2 text-sm font-medium",
+                               "border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md"
+                             )}>
+                               <Paperclip className="h-4 w-4" />
+                               Add Attachment
+                             </label>
+                           </div>
+                        </FormControl>
+                        { attachments.length > 0 && (
+                            <div className="space-y-2 pt-2">
+                             {attachments.map((file, index) => {
+                               const { name, url } = handleFileDisplay(file);
+                               return (
+                                  <div key={index} className="flex items-center justify-between p-2 border rounded-md">
+                                    <span className="text-sm truncate">{name}</span>
+                                    <div className="flex items-center gap-2">
+                                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" asChild>
+                                        <a href={url} target="_blank" rel="noopener noreferrer">
+                                          <Download className="h-4 w-4" />
+                                        </a>
+                                      </Button>
+                                      <Button
+                                       type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => handleFileRemove(index)}
+                                      >
+                                        <Trash2 className="h-4 w-4 text-red-500" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                               )
+                             })}
+                            </div>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {selectedDebt && (
+                     <FormField
+                      control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Status</FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              className="flex space-x-4"
+                            >
+                              <FormItem className="flex items-center space-x-2">
+                                <FormControl>
+                                  <RadioGroupItem value="unpaid" />
+                                </FormControl>
+                                <FormLabel>Unpaid</FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-2">
+                                <FormControl>
+                                  <RadioGroupItem value="partial" />
+                                </FormControl>
+                                <FormLabel>Partial</FormLabel>
+                              </FormItem>
+                               <FormItem className="flex items-center space-x-2">
+                                <FormControl>
+                                  <RadioGroupItem value="paid" />
+                                </FormControl>
+                                <FormLabel>Paid</FormLabel>
+                              </FormItem>
+                            </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                  <DialogFooter className="p-6 pt-0">
+                     {selectedDebt && (
+                      <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                             <Button type="button" variant="destructive" className="mr-auto">Delete</Button>
+                          </AlertDialogTrigger>
+                           <AlertDialogContent>
+                              <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                   This action cannot be undone. This will permanently delete this debt record.
+                                  </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => {/* TODO: Implement Delete */}}>Delete</AlertDialogAction>
+                              </AlertDialogFooter>
+                          </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                    <Button type="submit">{selectedDebt ? 'Save Changes' : 'Save Debt'}</Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </>
   );
 }
+
+    
