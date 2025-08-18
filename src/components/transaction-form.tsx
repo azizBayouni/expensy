@@ -37,7 +37,7 @@ import { Checkbox } from './ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import * as React from 'react';
 import { Textarea } from './ui/textarea';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 const formSchema = z.object({
   type: z.enum(['income', 'expense']),
@@ -182,20 +182,54 @@ export function TransactionForm({
               control={form.control}
               name="currency"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Currency</FormLabel>
-                   <Select onValueChange={field.onChange} defaultValue={field.value}>
-                     <FormControl>
-                       <SelectTrigger>
-                         <SelectValue placeholder="Select currency"/>
-                       </SelectTrigger>
-                     </FormControl>
-                     <SelectContent>
-                       {top100Currencies.map((currency) => (
-                         <SelectItem key={currency} value={currency}>{currency}</SelectItem>
-                       ))}
-                     </SelectContent>
-                   </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value || "Select currency"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search currency..." />
+                        <CommandList>
+                          <CommandEmpty>No currency found.</CommandEmpty>
+                          <CommandGroup>
+                            {top100Currencies.map((currency) => (
+                              <CommandItem
+                                value={currency}
+                                key={currency}
+                                onSelect={() => {
+                                  form.setValue("currency", currency)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    currency === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {currency}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
@@ -489,5 +523,6 @@ export function TransactionForm({
   </AlertDialog>
   );
 }
+
 
 
