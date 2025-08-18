@@ -1,10 +1,11 @@
+
 import type { LucideIcon } from 'lucide-react';
 
 export type Transaction = {
   id: string;
   type: 'income' | 'expense';
   amount: number;
-  currency: 'SAR' | 'USD' | 'EUR';
+  currency: string;
   date: string;
   wallet: string;
   category: string;
