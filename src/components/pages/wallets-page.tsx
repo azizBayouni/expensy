@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -20,7 +21,7 @@ import {
   CircleDollarSign,
   HelpCircle,
 } from 'lucide-react';
-import { wallets as initialWallets } from '@/lib/data';
+import { wallets as initialWallets, transactions } from '@/lib/data';
 import type { Wallet } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -38,6 +39,16 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -81,10 +92,17 @@ function getIconComponent(iconName: string | undefined): LucideIcon {
   return iconItem ? iconItem.icon : HelpCircle;
 }
 
+function getIconName(IconComponent: LucideIcon): string {
+    const iconItem = walletIcons.find(item => item.icon === IconComponent);
+    return iconItem ? iconItem.name : 'HelpCircle';
+}
+
 export function WalletsPage() {
   const [wallets, setWallets] = useState<Wallet[]>(initialWallets);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null);
+  const [walletToDelete, setWalletToDelete] = useState<Wallet | null>(null);
   const { toast } = useToast();
 
   const form = useForm<WalletFormData>({
@@ -103,10 +121,49 @@ export function WalletsPage() {
     });
     setIsDialogOpen(true);
   };
+  
+  const openEditDialog = (wallet: Wallet) => {
+    setSelectedWallet(wallet);
+    form.reset({
+      name: wallet.name,
+      icon: getIconName(wallet.icon),
+    });
+    setIsDialogOpen(true);
+  };
+
+  const openDeleteAlert = (wallet: Wallet) => {
+    if (transactions.some(t => t.wallet === wallet.name)) {
+      toast({
+        variant: 'destructive',
+        title: 'Deletion Failed',
+        description: 'Cannot delete wallet as it is associated with transactions.',
+      });
+      return;
+    }
+    setWalletToDelete(wallet);
+    setIsDeleteAlertOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (walletToDelete) {
+      setWallets(wallets.filter((w) => w.id !== walletToDelete.id));
+      toast({ title: 'Success', description: 'Wallet deleted successfully.' });
+      setIsDeleteAlertOpen(false);
+      setWalletToDelete(null);
+    }
+  };
 
   const handleFormSubmit = (data: WalletFormData) => {
     if (selectedWallet) {
-      // Edit logic would go here
+      const updatedWallet: Wallet = {
+        ...selectedWallet,
+        name: data.name,
+        icon: getIconComponent(data.icon),
+      };
+      setWallets(
+        wallets.map((w) => (w.id === selectedWallet.id ? updatedWallet : w))
+      );
+      toast({ title: 'Success', description: 'Wallet updated successfully.' });
     } else {
       const newWallet: Wallet = {
         id: `wallet-${Date.now()}`,
@@ -154,8 +211,13 @@ export function WalletsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-500">
+                      <DropdownMenuItem onClick={() => openEditDialog(wallet)}>
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-red-500"
+                        onClick={() => openDeleteAlert(wallet)}
+                      >
                         Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -260,6 +322,23 @@ export function WalletsPage() {
           </Form>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              wallet.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
