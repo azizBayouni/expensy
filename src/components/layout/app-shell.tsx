@@ -24,6 +24,7 @@ import {
   Sparkles,
   User,
   Wallet,
+  Settings,
 } from 'lucide-react';
 import { Logo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -72,6 +73,11 @@ const navItems = [
     href: '/insights',
     label: 'Insights',
     icon: Sparkles,
+  },
+  {
+    href: '/settings',
+    label: 'Settings',
+    icon: Settings,
   },
 ];
 

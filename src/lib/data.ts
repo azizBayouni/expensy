@@ -24,6 +24,7 @@ import {
   CreditCard,
   Banknote,
   Wallet as WalletIcon,
+  Settings,
 } from 'lucide-react';
 
 export let transactions: Transaction[] = [
@@ -117,7 +118,7 @@ export function updateTransactions(newTransactions: Transaction[]) {
 }
 
 
-export const categories: Category[] = [
+export let categories: Category[] = [
   // Income
   { id: 'cat-inc-1', name: 'Salary', type: 'income', icon: Briefcase, parentId: null },
   { id: 'cat-inc-2', name: 'Freelance', type: 'income', icon: HandCoins, parentId: null },
