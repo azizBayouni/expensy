@@ -146,14 +146,14 @@ function getIconComponent(iconName: string | undefined): LucideIcon {
   return Smile;
 }
 
-function getIconName(IconComponent: LucideIcon | string): keyof typeof LucideIcons | string {
+function getIconName(IconComponent: LucideIcon | string): string {
     if (typeof IconComponent !== 'function') {
         return IconComponent;
     }
     for (const name in LucideIcons) {
         if (Object.prototype.hasOwnProperty.call(LucideIcons, name)) {
             if (LucideIcons[name as keyof typeof LucideIcons] === IconComponent) {
-                return name as keyof typeof LucideIcons;
+                return name;
             }
         }
     }
@@ -292,14 +292,12 @@ export function CategoriesPage() {
     };
     
     if (selectedCategory) {
-      const updatedCategory = { ...selectedCategory, ...categoryData };
-      if (typeof categoryData.icon === 'string' && !isEmoji) {
-        updatedCategory.icon = getIconComponent(categoryData.icon as string);
-      }
+        const updatedCategory = { ...selectedCategory, ...categoryData };
+        if (typeof categoryData.icon === 'string' && !isEmoji) {
+            updatedCategory.icon = getIconComponent(categoryData.icon as string);
+        }
         setCategories(
-            categories.map((c) =>
-                c.id === selectedCategory.id ? updatedCategory : c
-            )
+            categories.map((c) => (c.id === selectedCategory.id ? updatedCategory : c))
         );
         toast({ title: 'Success', description: 'Category updated successfully.' });
     } else {
@@ -647,3 +645,5 @@ export function CategoriesPage() {
     </Card>
   );
 }
+
+    
