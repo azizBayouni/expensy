@@ -23,6 +23,8 @@ import {
   MoreHorizontal,
   PlusCircle,
   Calendar as CalendarIcon,
+  Check,
+  ChevronsUpDown,
 } from 'lucide-react';
 import {
   Sheet,
@@ -46,12 +48,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 export function TransactionsPage() {
   const [transactions, setTransactions] =
     React.useState<Transaction[]>(initialTransactions);
   const [search, setSearch] = React.useState('');
-  const [categoryFilter, setCategoryFilter] = React.useState('all');
+  const [categoryFilter, setCategoryFilter] = React.useState<string[]>([]);
   const [walletFilter, setWalletFilter] = React.useState('all');
   const [dateFilter, setDateFilter] = React.useState<DateRange | undefined>();
 
@@ -91,6 +94,14 @@ export function TransactionsPage() {
     saveTransactions(newTransactions);
     setSheetOpen(false);
   };
+  
+  const handleCategoryFilterChange = (categoryName: string) => {
+    setCategoryFilter(prev => 
+      prev.includes(categoryName) 
+        ? prev.filter(c => c !== categoryName)
+        : [...prev, categoryName]
+    );
+  };
 
   const filteredTransactions = transactions
     .filter((t) => {
@@ -100,7 +111,7 @@ export function TransactionsPage() {
         t.category.toLowerCase().includes(searchTerm)
       );
     })
-    .filter((t) => categoryFilter === 'all' || t.category === categoryFilter)
+    .filter((t) => categoryFilter.length === 0 || categoryFilter.includes(t.category))
     .filter((t) => walletFilter === 'all' || t.wallet === walletFilter)
     .filter((t) => {
       if (!dateFilter?.from) return true;
@@ -128,19 +139,50 @@ export function TransactionsPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="max-w-sm"
           />
-           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-full md:w-[180px]">
-              <SelectValue placeholder="Filter by category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.name}>
-                  {cat.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+           <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                    variant="outline"
+                    className="w-full md:w-[200px] justify-between"
+                >
+                    <span>
+                        {categoryFilter.length === 0 
+                            ? "All Categories" 
+                            : categoryFilter.length === 1
+                            ? categoryFilter[0]
+                            : `${categoryFilter.length} selected`}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full md:w-[200px] p-0">
+                <Command>
+                    <CommandInput placeholder="Search category..." />
+                    <CommandList>
+                        <CommandEmpty>No categories found.</CommandEmpty>
+                        <CommandGroup>
+                            {categories.map((cat) => (
+                                <CommandItem
+                                    key={cat.id}
+                                    onSelect={() => handleCategoryFilterChange(cat.name)}
+                                    className="cursor-pointer"
+                                >
+                                    <div className={cn(
+                                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                        categoryFilter.includes(cat.name)
+                                            ? "bg-primary text-primary-foreground"
+                                            : "opacity-50 [&_svg]:invisible"
+                                    )}>
+                                       <Check className={cn("h-4 w-4")} />
+                                    </div>
+                                    <span>{cat.name}</span>
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+           </Popover>
           <Select value={walletFilter} onValueChange={setWalletFilter}>
             <SelectTrigger className="w-full md:w-[180px]">
               <SelectValue placeholder="All Wallets" />
@@ -280,3 +322,5 @@ export function TransactionsPage() {
     </div>
   );
 }
+
+    
