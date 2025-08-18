@@ -13,6 +13,8 @@ export type Transaction = {
   event?: string;
   attachments?: { name: string, path: string }[];
   excludeFromReports?: boolean;
+  originalAmount?: number;
+  convertedAmountSAR?: number;
 };
 
 export type Category = {

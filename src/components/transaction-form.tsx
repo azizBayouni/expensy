@@ -31,7 +31,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { Transaction } from '@/types';
-import { categories, wallets, events } from '@/lib/data';
+import { categories, wallets, events, updateWallets } from '@/lib/data';
 import { ScrollArea } from './ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
@@ -39,6 +39,7 @@ import * as React from 'react';
 import { Textarea } from './ui/textarea';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useTravelMode } from '@/hooks/use-travel-mode';
+import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from './ui/skeleton';
 
 const formSchema = z.object({
@@ -71,19 +72,21 @@ export function TransactionForm({
   onDelete,
   onCancel,
 }: TransactionFormProps) {
-  const { isActive, eventId, currency } = useTravelMode();
+  const { isActive, eventId, currency, isLoaded } = useTravelMode();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       type: transaction?.type || 'expense',
       amount: transaction?.amount || ('' as any),
-      currency: transaction?.currency || (isActive ? currency ?? 'SAR' : 'SAR'),
+      currency: transaction?.currency || (isActive && currency ? currency : 'SAR'),
       wallet: transaction?.wallet || wallets.find((w) => w.isDefault)?.name || '',
       category: transaction?.category || '',
       date: transaction ? new Date(transaction.date) : new Date(),
       description: transaction?.description || '',
-      event: transaction?.event || (isActive ? eventId ?? 'null' : 'null'),
+      event: transaction?.event || (isActive && eventId ? eventId : 'null'),
       attachments: transaction?.attachments || [],
       excludeFromReports: transaction?.excludeFromReports || false,
     },
@@ -92,10 +95,53 @@ export function TransactionForm({
   const attachments = form.watch('attachments') || [];
   const transactionType = form.watch('type');
 
-  function handleFormSubmit(values: z.infer<typeof formSchema>) {
+  async function handleFormSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    let finalAmount = values.amount;
+    let convertedAmount: number | undefined;
+    let originalAmount: number | undefined;
+
+    if (values.currency !== 'SAR') {
+        const apiKey = localStorage.getItem('exchangeRateApiKey');
+        if (!apiKey) {
+            toast({
+                variant: 'destructive',
+                title: 'API Key Required',
+                description: 'Please set your ExchangeRate-API key in settings to convert currencies.',
+            });
+            setIsSubmitting(false);
+            return;
+        }
+
+        try {
+            const response = await fetch(`https://v6.exchangerate-api.com/v6/${apiKey}/pair/${values.currency}/SAR/${values.amount}`);
+            const data = await response.json();
+            if (data.result === 'success') {
+                originalAmount = values.amount;
+                convertedAmount = data.conversion_result;
+                finalAmount = convertedAmount;
+                 toast({
+                    title: 'Currency Converted',
+                    description: `${originalAmount} ${values.currency} = ${finalAmount.toFixed(2)} SAR`,
+                });
+            } else {
+                throw new Error(data['error-type'] || 'Failed to fetch exchange rate.');
+            }
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Conversion Failed',
+                description: error.message,
+            });
+            setIsSubmitting(false);
+            return;
+        }
+    }
+
     const fullTransaction: Transaction = {
       id: transaction?.id || `trx-${Date.now()}`,
       ...values,
+      amount: finalAmount,
       date: format(values.date, 'yyyy-MM-dd'),
       attachments: values.attachments?.map(f => {
         if (f instanceof File) {
@@ -104,8 +150,22 @@ export function TransactionForm({
         return f;
       }),
       event: values.event === 'null' ? undefined : values.event,
+      originalAmount: originalAmount,
+      convertedAmountSAR: convertedAmount,
+      currency: 'SAR',
     };
+    
+    const wallet = wallets.find(w => w.name === values.wallet);
+    if (wallet) {
+      const newBalance = values.type === 'income' 
+        ? wallet.balance + finalAmount 
+        : wallet.balance - finalAmount;
+      const updatedWallets = wallets.map(w => w.id === wallet.id ? { ...w, balance: newBalance } : w);
+      updateWallets(updatedWallets);
+    }
+
     onSubmit(fullTransaction);
+    setIsSubmitting(false);
   }
 
   const handleDelete = () => {
@@ -128,6 +188,24 @@ export function TransactionForm({
   };
   
   const filteredCategories = categories.filter(c => c.type === transactionType);
+
+  if (!isLoaded) {
+    return (
+        <div className="space-y-4 py-4">
+            <Skeleton className="h-10 w-full" />
+            <div className="grid grid-cols-2 gap-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+            </div>
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-20 w-full" />
+        </div>
+    );
+  }
 
   return (
     <>
@@ -503,8 +581,8 @@ export function TransactionForm({
                 ) : <div />}
               <div className="flex gap-2">
                 <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-                <Button type="submit">
-                  {transaction ? 'Save Changes' : 'Create Transaction'}
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Saving...' : (transaction ? 'Save Changes' : 'Create Transaction')}
                 </Button>
               </div>
             </div>

@@ -65,9 +65,15 @@ export function TransactionsPage() {
 
   const { isLoaded: isTravelModeLoaded } = useTravelMode();
 
+  React.useEffect(() => {
+    // This is a mock to simulate data fetching and updates.
+    setTransactions(initialTransactions);
+  }, [initialTransactions]);
+
+
   const saveTransactions = (newTransactions: Transaction[]) => {
-    setTransactions(newTransactions);
     updateTransactions(newTransactions);
+    setTransactions(newTransactions);
   };
 
   const handleAddTransaction = () => {
@@ -81,6 +87,18 @@ export function TransactionsPage() {
   };
 
   const handleDeleteTransaction = (id: string) => {
+    const transactionToDelete = transactions.find(t => t.id === id);
+    if (transactionToDelete) {
+        const wallet = wallets.find(w => w.name === transactionToDelete.wallet);
+        if (wallet) {
+            const newBalance = transactionToDelete.type === 'income'
+                ? wallet.balance - transactionToDelete.amount
+                : wallet.balance + transactionToDelete.amount;
+            // This part is tricky without a proper backend. We're assuming direct mutation for prototype purposes.
+            wallet.balance = newBalance;
+        }
+    }
+
     const newTransactions = transactions.filter((t) => t.id !== id);
     saveTransactions(newTransactions);
     setSheetOpen(false);
@@ -90,7 +108,7 @@ export function TransactionsPage() {
     let newTransactions: Transaction[];
     if (selectedTransaction) {
       newTransactions = transactions.map((t) =>
-        t.id === selectedTransaction.id ? { ...data } : t
+        t.id === selectedTransaction.id ? { ...t, ...data } : t
       );
     } else {
       newTransactions = [...transactions, { ...data, id: `trx-${Date.now()}` }];
@@ -255,12 +273,17 @@ export function TransactionsPage() {
           </TableHeader>
           <TableBody>
             {filteredTransactions.map((transaction) => {
-              const event = eventData.find(e => e.name === transaction.event);
+              const event = eventData.find(e => e.id === transaction.event);
               return (
               <TableRow key={transaction.id} onClick={() => handleEditTransaction(transaction)} className="cursor-pointer">
                 <TableCell>{format(new Date(transaction.date), 'dd MMM yyyy')}</TableCell>
                 <TableCell className="font-medium">
                   {transaction.description}
+                  {transaction.originalAmount && (
+                    <p className="text-xs text-muted-foreground">
+                        Original: {transaction.originalAmount.toFixed(2)} {transaction.currency}
+                    </p>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">{transaction.category}</Badge>
@@ -275,7 +298,7 @@ export function TransactionsPage() {
                       : 'text-red-600'
                   )}
                 >
-                  {transaction.type === 'income' ? '+' : ''}
+                  {transaction.type === 'income' ? '+' : '-'}
                   {transaction.amount.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
                 </TableCell>
                 <TableCell>
