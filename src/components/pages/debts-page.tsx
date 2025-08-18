@@ -634,5 +634,3 @@ export function DebtsPage() {
     </>
   );
 }
-
-    
