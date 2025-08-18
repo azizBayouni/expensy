@@ -80,6 +80,7 @@ export function TransactionForm({
   });
   
   const attachments = form.watch('attachments') || [];
+  const transactionType = form.watch('type');
 
   function handleFormSubmit(values: z.infer<typeof formSchema>) {
     const fullTransaction: Transaction = {
@@ -115,6 +116,8 @@ export function TransactionForm({
     const updatedAttachments = currentAttachments.filter((_, index) => index !== indexToRemove);
     form.setValue('attachments', updatedAttachments);
   };
+  
+  const filteredCategories = categories.filter(c => c.type === transactionType);
 
 
   return (
@@ -133,7 +136,10 @@ export function TransactionForm({
               <FormItem>
                 <FormLabel>Type</FormLabel>
                 <Select
-                  onValueChange={field.onChange}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    form.setValue('category', '');
+                  }}
                   defaultValue={field.value}
                 >
                   <FormControl>
@@ -225,7 +231,7 @@ export function TransactionForm({
                   <FormLabel>Category</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -233,7 +239,7 @@ export function TransactionForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {categories.map((cat) => (
+                      {filteredCategories.map((cat) => (
                         <SelectItem key={cat.id} value={cat.name}>
                           {cat.name}
                         </SelectItem>
