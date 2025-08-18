@@ -209,7 +209,16 @@ export function CategoriesPage() {
 
   const openEditDialog = (category: Category) => {
     setSelectedCategory(category);
-    const iconValue = typeof category.icon === 'string' ? category.icon : 'Smile';
+    
+    let iconValue = 'Smile'; 
+    if (typeof category.icon === 'string') {
+        iconValue = category.icon;
+    } else if (typeof category.icon === 'function') {
+        const iconName = (category.icon as LucideIcon).displayName;
+        if(iconName) {
+            iconValue = iconName
+        }
+    }
     
     form.reset({
       name: category.name,
@@ -371,7 +380,10 @@ export function CategoriesPage() {
     
     return (
       <>
-        <TableRow>
+        <TableRow 
+            onClick={() => openEditDialog(category)}
+            className="cursor-pointer"
+        >
           <TableCell style={{ paddingLeft: `${1 + level * 2}rem` }}>
             <div className="flex items-center gap-3">
               {IconComponent}
@@ -394,18 +406,18 @@ export function CategoriesPage() {
           <TableCell className="text-right">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-8 h-8 p-0">
+                <Button variant="ghost" className="w-8 h-8 p-0" onClick={(e) => e.stopPropagation()}>
                   <span className="sr-only">Open menu</span>
                   <MoreHorizontal className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => openEditDialog(category)}>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(category); }}>
                   Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-red-600"
-                  onClick={() => openDeleteAlert(category)}
+                  onClick={(e) => { e.stopPropagation(); openDeleteAlert(category); }}
                 >
                   Delete
                 </DropdownMenuItem>
@@ -635,5 +647,3 @@ export function CategoriesPage() {
     </Card>
   );
 }
-
-    
