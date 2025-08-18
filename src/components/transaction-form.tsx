@@ -67,13 +67,13 @@ export function TransactionForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       type: transaction?.type || 'expense',
-      amount: transaction?.amount || undefined,
+      amount: transaction?.amount || '',
       currency: transaction?.currency || 'SAR',
       wallet: transaction?.wallet || defaultWallet || '',
       category: transaction?.category || '',
       date: transaction ? new Date(transaction.date) : new Date(),
       description: transaction?.description || '',
-      event: transaction?.event || '',
+      event: transaction?.event || 'null',
       attachments: [],
       excludeFromReports: transaction?.excludeFromReports || false,
     },
@@ -426,5 +426,3 @@ export function TransactionForm({
   </AlertDialog>
   );
 }
-
-    
