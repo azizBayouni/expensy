@@ -226,7 +226,7 @@ export function SettingsPage() {
   };
   
   const handleDownloadCategoryTemplate = () => {
-    const header = "id,name,type,icon,parentId\n";
+    const header = "id,name,type,parentId\n";
     const blob = new Blob([header], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -251,7 +251,7 @@ export function SettingsPage() {
           const row = data[i];
           const rowNum = i + 2;
 
-          if (!row.id || !row.name || !row.type || !row.icon) {
+          if (!row.id || !row.name || !row.type) {
             toast({ variant: 'destructive', title: 'Import Failed', description: `Missing required fields on row ${rowNum}.` });
             if(categoryImportRef.current) categoryImportRef.current.value = "";
             setCategoryImportFile(null);
@@ -279,7 +279,7 @@ export function SettingsPage() {
             id: row.id,
             name: row.name,
             type: row.type,
-            icon: row.icon,
+            icon: '🛒', // Default icon
             parentId: row.parentId || null,
           });
         }
@@ -298,7 +298,12 @@ export function SettingsPage() {
   };
   
   const handleExportCategories = () => {
-     const csv = Papa.unparse(categories.map(c => ({...c, icon: typeof c.icon === 'string' ? c.icon : (c.icon as any).displayName })));
+     const csv = Papa.unparse(categories.map(c => ({
+         id: c.id,
+         name: c.name,
+         type: c.type,
+         parentId: c.parentId || ''
+     })));
      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
      const link = document.createElement('a');
      link.href = URL.createObjectURL(blob);
