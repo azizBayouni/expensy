@@ -34,7 +34,6 @@ import { DateRange } from 'react-day-picker';
 import { Progress } from '@/components/ui/progress';
 import { CategoriesDonutChart } from '@/components/charts/categories-donut-chart';
 import { CategorySpendingList } from '@/components/charts/category-spending-list';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 export function ReportsPage() {
@@ -349,44 +348,18 @@ export function ReportsPage() {
             <Progress value={expensePercentage} className="h-2 [&>div]:bg-chart-1" />
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Category Report</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="breakdown">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="breakdown">Breakdown</TabsTrigger>
-                <TabsTrigger value="chart">Chart</TabsTrigger>
-              </TabsList>
-              <TabsContent value="breakdown" className="pt-4">
-                 <div className="space-y-4">
-                    <div className="flex justify-between items-center p-2 rounded-md hover:bg-accent cursor-pointer">
-                        <div>
-                            <p className="text-sm text-muted-foreground">Total Expense</p>
-                            <p className="font-bold text-red-400">{financialSummary.totalExpense.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
-                        </div>
-                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <CategorySpendingList 
-                        transactions={financialSummary.transactionsInPeriod} 
-                        categories={allCategories}
-                    />
-                 </div>
-              </TabsContent>
-              <TabsContent value="chart">
-                <CategoriesDonutChart 
-                    transactions={financialSummary.transactionsInPeriod} 
-                    categories={allCategories}
-                    className="col-span-1 lg:col-span-2"
-                />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <CategoriesDonutChart 
+            transactions={financialSummary.transactionsInPeriod} 
+            categories={allCategories}
+        />
+        <CategorySpendingList 
+            transactions={financialSummary.transactionsInPeriod} 
+            categories={allCategories}
+        />
+      </div>
     </div>
   );
 }

@@ -134,7 +134,7 @@ export function CategorySpendingList({
             <p className="font-medium flex-1 truncate">{category.name}</p>
           </div>
           <div className="flex items-center gap-2">
-              <p className="font-semibold text-red-400">
+              <p className="font-semibold text-right">
                   {category.total.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
               </p>
           </div>
@@ -163,8 +163,12 @@ export function CategorySpendingList({
 
 
   return (
-    <Card className={`${className} bg-transparent border-none shadow-none`}>
-      <CardContent className="p-0">
+    <Card className={className}>
+      <CardHeader>
+        <CardTitle>Spending by Category</CardTitle>
+        <CardDescription>A detailed list of your spending.</CardDescription>
+      </CardHeader>
+      <CardContent>
           <div className="space-y-1">
             {sortedCategories.map((cat, i) => renderItem(cat, i))}
           </div>
