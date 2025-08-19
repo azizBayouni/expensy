@@ -21,8 +21,8 @@ interface CategoriesDonutChartProps {
 }
 
 const COLORS = [
-  'hsl(var(--chart-1))',
   'hsl(var(--chart-2))',
+  'hsl(var(--chart-1))',
   'hsl(var(--chart-3))',
   'hsl(var(--chart-4))',
   'hsl(var(--chart-5))',
@@ -31,7 +31,8 @@ const COLORS = [
 const renderCustomizedLabel = (props: any) => {
   const { cx, cy, midAngle, innerRadius, outerRadius, percent, name, fill } = props;
   const RADIAN = Math.PI / 180;
-  const radius = innerRadius + (outerRadius - innerRadius) * 1.4;
+  // Increase the radius multiplier to push labels further out
+  const radius = innerRadius + (outerRadius - innerRadius) * 1.6; 
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
   const textAnchor = x > cx ? 'start' : 'end';
@@ -45,7 +46,7 @@ const renderCustomizedLabel = (props: any) => {
       dominantBaseline="central"
       className="text-xs font-semibold"
     >
-      {`${name} (${(percent * 100).toFixed(0)}%)`}
+      {`${(percent * 100).toFixed(0)}%`}
     </text>
   );
 };
@@ -60,53 +61,39 @@ export function CategoriesDonutChart({
     const expenseTransactions = transactions.filter(t => t.type === 'expense');
     const totalExpenses = expenseTransactions.reduce((acc, t) => acc + t.amount, 0);
     
-    const categoryMap = new Map(allCategories.map(c => [c.name, c.id]));
     const categoryIdMap = new Map(allCategories.map(c => [c.id, c]));
 
-    const getRootParent = (categoryId: string): Category | undefined => {
-        let current = categoryIdMap.get(categoryId);
-        if (!current) return undefined;
-        while (current?.parentId) {
-            const parent = categoryIdMap.get(current.parentId);
-            if (!parent) return current;
-            current = parent;
+    const getDescendantIds = (categoryId: string): Set<string> => {
+        const ids = new Set<string>();
+        const queue = [categoryId];
+        while(queue.length > 0) {
+            const currentId = queue.shift()!;
+            ids.add(currentId);
+            const children = allCategories.filter(c => c.parentId === currentId);
+            children.forEach(child => queue.push(child.id));
         }
-        return current;
+        return ids;
     };
     
     const spendingByCategory = new Map<string, number>();
 
-    for (const transaction of expenseTransactions) {
-        const categoryId = categoryMap.get(transaction.category);
-        if (!categoryId) continue;
+    for (const category of categories) {
+      const descendantIds = getDescendantIds(category.id);
+      const descendantNames = Array.from(descendantIds)
+          .map(id => categoryIdMap.get(id)?.name)
+          .filter((name): name is string => !!name);
 
-        // Use the passed `categories` prop to determine which level to aggregate at.
-        // This is the key change. We check if the transaction's category is one of the `categories`
-        // passed to the component. If so, we aggregate under it. If not, we find its root parent.
-        const relevantCategory = categories.find(c => c.id === categoryId);
-
-        if (relevantCategory) {
-            spendingByCategory.set(
-              relevantCategory.name,
-              (spendingByCategory.get(relevantCategory.name) || 0) + transaction.amount
-            );
-        } else {
-             const rootParent = getRootParent(categoryId);
-             if (rootParent && categories.some(c => c.id === rootParent.id)) {
-                 spendingByCategory.set(
-                  rootParent.name,
-                  (spendingByCategory.get(rootParent.name) || 0) + transaction.amount
-                );
-             }
-        }
+      const categoryTotal = expenseTransactions
+          .filter(t => descendantNames.includes(t.category))
+          .reduce((acc, t) => acc + t.amount, 0);
+      
+      if (categoryTotal > 0) {
+        spendingByCategory.set(category.name, categoryTotal);
+      }
     }
     
-    const chartData = categories
-      .map(category => ({
-        name: category.name,
-        value: spendingByCategory.get(category.name) || 0,
-      }))
-      .filter(item => item.value > 0)
+    const chartData = Array.from(spendingByCategory.entries())
+      .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
     return { chartData, totalExpenses };
@@ -162,7 +149,7 @@ export function CategoriesDonutChart({
                 innerRadius="60%"
                 outerRadius="80%"
                 paddingAngle={5}
-                label={renderCustomizedLabel}
+                label={chartData.length > 1 ? renderCustomizedLabel : false}
                 labelLine={false}
               >
                 {chartData.map((entry, index) => (
@@ -172,7 +159,7 @@ export function CategoriesDonutChart({
             </PieChart>
           </ResponsiveContainer>
            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <p className="text-sm text-muted-foreground">Total Expenses</p>
+            <p className="text-sm text-muted-foreground">Total Spent</p>
             <p className="text-2xl font-bold">
               {totalExpenses.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
             </p>

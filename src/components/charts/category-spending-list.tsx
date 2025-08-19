@@ -14,6 +14,8 @@ import {
 import Link from 'next/link';
 import { Button } from '../ui/button';
 import { useSearchParams } from 'next/navigation';
+import { ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface CategorySpendingListProps {
   transactions: Transaction[];
@@ -43,34 +45,35 @@ export function CategorySpendingList({
   const sortedCategories = useMemo(() => {
     const expenseTransactions = transactions.filter(t => t.type === 'expense');
     const categoryNameMap = new Map(allCategories.map(c => [c.name, c]));
+    const categoryIdMap = new Map(allCategories.map(c => [c.id, c]));
+
+    const getDescendantIds = (categoryId: string): Set<string> => {
+        const ids = new Set<string>();
+        const queue = [categoryId];
+        while(queue.length > 0) {
+            const currentId = queue.shift()!;
+            ids.add(currentId);
+            const children = allCategories.filter(c => c.parentId === currentId);
+            children.forEach(child => queue.push(child.id));
+        }
+        return ids;
+    };
 
     const spendingByCategory = new Map<string, number>();
 
-    for (const transaction of expenseTransactions) {
-      const transactionCategory = categoryNameMap.get(transaction.category);
-      if (!transactionCategory) continue;
+    for (const category of categories) {
+        const descendantIds = getDescendantIds(category.id);
+        const descendantNames = Array.from(descendantIds)
+            .map(id => categoryIdMap.get(id)?.name)
+            .filter((name): name is string => !!name);
+        
+        const total = expenseTransactions
+            .filter(t => descendantNames.includes(t.category))
+            .reduce((acc, t) => acc + t.amount, 0);
 
-      // Find which category from the `categories` prop this transaction belongs to.
-      let relevantParent = categories.find(c => c.id === transactionCategory.id);
-      
-      if (!relevantParent) {
-         let current: Category | undefined = transactionCategory;
-         while(current && current.parentId) {
-             const parent = allCategories.find(c => c.id === current?.parentId);
-             if (parent && categories.some(c => c.id === parent.id)) {
-                 relevantParent = parent;
-                 break;
-             }
-             current = parent;
-         }
-      }
-
-      if (relevantParent) {
-          spendingByCategory.set(
-            relevantParent.id,
-            (spendingByCategory.get(relevantParent.id) || 0) + transaction.amount
-          );
-      }
+        if (total > 0) {
+            spendingByCategory.set(category.id, total);
+        }
     }
 
     return categories
@@ -107,9 +110,10 @@ export function CategorySpendingList({
             <p className="font-medium flex-1 truncate">{category.name}</p>
           </div>
           <div className="flex items-center gap-2">
-              <p className="font-semibold text-right">
+              <p className={cn("font-semibold text-right", isInteractive && "text-red-500")}>
                   {category.total.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
               </p>
+              {isInteractive && <ChevronRight className="h-4 w-4 text-red-500" />}
           </div>
       </div>
     );

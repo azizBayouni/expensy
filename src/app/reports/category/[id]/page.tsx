@@ -77,9 +77,12 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
 
     const allRelatedTransactions = transactions.filter(t => {
       const transactionDate = parseISO(t.date);
-      return descendantCategoryNames.includes(t.category) &&
+      const categoryName = t.category;
+      
+      return descendantCategoryNames.includes(categoryName) &&
              transactionDate >= startDate &&
-             transactionDate <= endDate;
+             transactionDate <= endDate &&
+             t.type === 'expense';
     });
 
     const total = allRelatedTransactions.reduce((acc, t) => acc + t.amount, 0);
@@ -92,14 +95,28 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
     return { 
         totalExpenses: total, 
         dailyAverage: average, 
-        subCategories: directChildren.length > 0 ? directChildren : [category],
+        subCategories: directChildren.length > 0 ? directChildren : [],
         filteredTransactions: allRelatedTransactions,
     };
   }, [category, from, to, transactions]);
 
   const tableTransactions = useMemo(() => {
       if (selectedSubCategory) {
-          return filteredTransactions.filter(t => t.category === selectedSubCategory);
+          const subCatAndDescendantsIds = new Set<string>();
+          const getSubCatDescendants = (catName: string) => {
+              const cat = allCategories.find(c => c.name === catName);
+              if (!cat) return;
+              subCatAndDescendantsIds.add(cat.id);
+              const children = allCategories.filter(c => c.parentId === cat.id);
+              children.forEach(child => getSubCatDescendants(child.name));
+          };
+          getSubCatDescendants(selectedSubCategory);
+
+          const subCatAndDescendantsNames = Array.from(subCatAndDescendantsIds)
+              .map(id => allCategories.find(c => c.id === id)?.name)
+              .filter((name): name is string => !!name);
+
+          return filteredTransactions.filter(t => subCatAndDescendantsNames.includes(t.category));
       }
       return filteredTransactions;
   }, [filteredTransactions, selectedSubCategory]);
@@ -131,6 +148,8 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
   if (!category) {
     notFound();
   }
+  
+  const breakdownCategories = subCategories.length > 0 ? subCategories : [category];
 
   return (
     <div className="space-y-6">
@@ -140,10 +159,7 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
             <ChevronLeft className="h-4 w-4" />
             </Button>
             <div>
-                <h1 className="text-2xl font-bold">Category Report: {category.name}</h1>
-                <p className="text-muted-foreground">
-                    Detailed view of your spending for this category.
-                </p>
+                <h1 className="text-2xl font-bold">{category.name}</h1>
             </div>
         </div>
          {selectedSubCategory && (
@@ -156,26 +172,20 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Total Spent</CardTitle>
-            <CardDescription>
-                Total amount spent in the '{category.name}' category and its sub-categories for the selected period.
-            </CardDescription>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">
+            <p className="text-3xl font-bold text-red-500">
                 {totalExpenses.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Daily Average</CardTitle>
-             <CardDescription>
-                Average daily spending for this category over the selected period.
-            </CardDescription>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Daily average</CardTitle>
           </CardHeader>
           <CardContent>
-             <p className="text-3xl font-bold">
+             <p className="text-3xl font-bold text-red-500">
                 {dailyAverage.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
              </p>
           </CardContent>
@@ -191,11 +201,11 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
              <div className="grid gap-6 mt-6 md:grid-cols-2">
                 <CategoriesDonutChart 
                     transactions={filteredTransactions} 
-                    categories={subCategories}
+                    categories={breakdownCategories}
                 />
                 <CategorySpendingList
                     transactions={filteredTransactions}
-                    categories={subCategories}
+                    categories={breakdownCategories}
                     onCategoryClick={handleSubCategoryClick}
                     isInteractive
                 />
@@ -230,7 +240,7 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
                                         <TableCell>
                                         <Badge variant="outline">{transaction.category}</Badge>
                                         </TableCell>
-                                        <TableCell className={cn("text-right font-semibold", 'text-red-600')}>
+                                        <TableCell className={cn("text-right font-semibold", 'text-red-500')}>
                                             -{transaction.amount.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
                                         </TableCell>
                                     </TableRow>
