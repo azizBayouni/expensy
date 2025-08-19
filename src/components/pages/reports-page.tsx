@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   Card,
@@ -13,12 +13,25 @@ import {
 import { TimeRangePicker, type TimeRange } from '@/components/ui/time-range-picker';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronsUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, ArrowDown, ArrowUp } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { wallets as allWallets } from '@/lib/data';
+import { wallets as allWallets, transactions as allTransactions } from '@/lib/data';
 import { cn } from '@/lib/utils';
-import { add, sub, format } from 'date-fns';
+import {
+  add,
+  sub,
+  format,
+  startOfYear,
+  endOfYear,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  startOfDay,
+  endOfDay,
+} from 'date-fns';
 import { DateRange } from 'react-day-picker';
+import { Progress } from '@/components/ui/progress';
 
 
 export function ReportsPage() {
@@ -76,6 +89,78 @@ export function ReportsPage() {
 
         router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     }, [selectedWallets, timeRange, customDateRange, dateOffset, pathname, router]);
+    
+    const financialSummary = useMemo(() => {
+        let startDate: Date;
+        let endDate: Date;
+        
+        if (timeRange === 'custom' && customDateRange?.from && customDateRange?.to) {
+            startDate = startOfDay(customDateRange.from);
+            endDate = endOfDay(customDateRange.to);
+        } else {
+            const now = new Date();
+            const unit = timeRange === 'day' ? 'days' : timeRange === 'week' ? 'weeks' : timeRange === 'month' ? 'months' : 'years';
+            const dateWithOffset = dateOffset !== 0 ? (dateOffset > 0 ? add(now, { [unit]: dateOffset }) : sub(now, { [unit]: Math.abs(dateOffset) })) : now;
+
+            switch (timeRange) {
+                case 'day':
+                    startDate = startOfDay(dateWithOffset);
+                    endDate = endOfDay(dateWithOffset);
+                    break;
+                case 'week':
+                    startDate = startOfWeek(dateWithOffset);
+                    endDate = endOfWeek(dateWithOffset);
+                    break;
+                case 'month':
+                    startDate = startOfMonth(dateWithOffset);
+                    endDate = endOfMonth(dateWithOffset);
+                    break;
+                case 'year':
+                    startDate = startOfYear(dateWithOffset);
+                    endDate = endOfYear(dateWithOffset);
+                    break;
+                default:
+                    startDate = startOfMonth(now);
+                    endDate = endOfMonth(now);
+            }
+        }
+        
+        const selectedWalletNames = allWallets.filter(w => selectedWallets.includes(w.id)).map(w => w.name);
+
+        const transactionsInPeriod = allTransactions.filter(t => {
+            const transactionDate = new Date(t.date);
+            return selectedWalletNames.includes(t.wallet) && transactionDate >= startDate && transactionDate <= endDate;
+        });
+
+        const transactionsBeforePeriod = allTransactions.filter(t => {
+            const transactionDate = new Date(t.date);
+            return selectedWalletNames.includes(t.wallet) && transactionDate < startDate;
+        });
+        
+        const openingBalance = transactionsBeforePeriod.reduce((acc, t) => {
+            return t.type === 'income' ? acc + t.amount : acc - t.amount;
+        }, 0);
+
+        const totalIncome = transactionsInPeriod
+            .filter(t => t.type === 'income')
+            .reduce((acc, t) => acc + t.amount, 0);
+
+        const totalExpense = transactionsInPeriod
+            .filter(t => t.type === 'expense')
+            .reduce((acc, t) => acc + t.amount, 0);
+
+        const netIncome = totalIncome - totalExpense;
+        const endingBalance = openingBalance + netIncome;
+        
+        return {
+            totalIncome,
+            totalExpense,
+            netIncome,
+            openingBalance,
+            endingBalance,
+            transactionsInPeriod
+        };
+    }, [selectedWallets, timeRange, customDateRange, dateOffset]);
 
     const handleWalletToggle = (walletId: string) => {
         setSelectedWallets(prev => 
@@ -119,6 +204,8 @@ export function ReportsPage() {
             default: return 'Select Range';
         }
     }, [timeRange, customDateRange, dateOffset]);
+    
+    const expensePercentage = financialSummary.totalIncome > 0 ? (financialSummary.totalExpense / financialSummary.totalIncome) * 100 : 0;
 
 
   return (
@@ -131,11 +218,11 @@ export function ReportsPage() {
             </p>
         </div>
          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => handleDateOffsetChange('prev')}>
+            <Button variant="outline" size="icon" onClick={() => handleDateOffsetChange('prev')} disabled={timeRange === 'custom'}>
                 <ChevronLeft className="h-4 w-4" />
             </Button>
             <div className="text-center font-medium min-w-[180px]">{dateRangeDisplay}</div>
-            <Button variant="outline" size="icon" onClick={() => handleDateOffsetChange('next')}>
+            <Button variant="outline" size="icon" onClick={() => handleDateOffsetChange('next')} disabled={timeRange === 'custom'}>
                 <ChevronRight className="h-4 w-4" />
             </Button>
         </div>
@@ -191,17 +278,63 @@ export function ReportsPage() {
         />
       </div>
 
-      <Card>
+       <Card>
         <CardHeader>
-          <CardTitle>Reports Content</CardTitle>
-          <CardDescription>
-            This is the main content area for the reports. More features will be added here.
-          </CardDescription>
+          <CardDescription>Ending Balance</CardDescription>
+          <CardTitle className="text-4xl">{financialSummary.endingBalance.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Placeholder content for the reports page.</p>
+           <p className="text-xs text-muted-foreground">
+            Opening balance of {financialSummary.openingBalance.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
+          </p>
         </CardContent>
       </Card>
+      
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Net Income</CardTitle>
+            <CardDescription>
+              Your total income versus expenses for the selected period.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className={`text-3xl font-bold ${financialSummary.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {financialSummary.netIncome.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                 <div className="flex items-center text-green-600">
+                    <ArrowUp className="w-4 h-4 mr-1" />
+                    <span>Income</span>
+                 </div>
+                 <span>{financialSummary.totalIncome.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center text-red-600">
+                  <ArrowDown className="w-4 h-4 mr-1" />
+                  <span>Expense</span>
+                </div>
+                 <span>{financialSummary.totalExpense.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</span>
+              </div>
+            </div>
+            <Progress value={expensePercentage} className="h-2" />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Reports Content</CardTitle>
+            <CardDescription>
+              This is the main content area for the reports. More features will be added here.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>Placeholder content for the reports page.</p>
+          </CardContent>
+        </Card>
+      </div>
+
     </div>
   );
 }
