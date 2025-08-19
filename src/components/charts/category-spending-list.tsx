@@ -3,6 +3,7 @@
 
 import { useMemo } from 'react';
 import type { Transaction, Category } from '@/types';
+import { allCategories } from '@/lib/data';
 import {
   Card,
   CardContent,
@@ -10,14 +11,9 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import * as LucideIcons from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '../ui/button';
 import { useSearchParams } from 'next/navigation';
-import { ChevronRight } from 'lucide-react';
 
 interface CategorySpendingListProps {
   transactions: Transaction[];
@@ -25,11 +21,6 @@ interface CategorySpendingListProps {
   className?: string;
   isInteractive?: boolean;
   onCategoryClick?: (categoryName: string) => void;
-}
-
-const getIconComponent = (icon: string | LucideIcon): LucideIcon => {
-    if (typeof icon === 'function') return icon;
-    return (LucideIcons[icon as keyof typeof LucideIcons] as LucideIcon) || LucideIcons.HelpCircle;
 }
 
 const COLORS = [
@@ -51,63 +42,46 @@ export function CategorySpendingList({
 
   const sortedCategories = useMemo(() => {
     const expenseTransactions = transactions.filter(t => t.type === 'expense');
-    const categoryMap = new Map(categories.map(c => [c.id, c]));
-    
-    const getParentCategory = (categoryId: string): Category | undefined => {
-      let current = categoryMap.get(categoryId);
-      if (!current) return undefined;
-      while (current?.parentId && categoryMap.has(current.parentId)) {
-        const parent = categoryMap.get(current.parentId);
-        if (!parent) break;
-        current = parent;
-      }
-      return current;
-    };
-    
-    const spendingByParentCategory = new Map<string, number>();
+    const categoryNameMap = new Map(allCategories.map(c => [c.name, c]));
+
+    const spendingByCategory = new Map<string, number>();
 
     for (const transaction of expenseTransactions) {
-      const category = categories.find(c => c.name === transaction.category);
-      if (category) {
-        const parent = getParentCategory(category.id);
-        if (parent) {
-          spendingByParentCategory.set(
-            parent.id,
-            (spendingByParentCategory.get(parent.id) || 0) + transaction.amount
+      const transactionCategory = categoryNameMap.get(transaction.category);
+      if (!transactionCategory) continue;
+
+      // Find which category from the `categories` prop this transaction belongs to.
+      let relevantParent = categories.find(c => c.id === transactionCategory.id);
+      
+      if (!relevantParent) {
+         let current: Category | undefined = transactionCategory;
+         while(current && current.parentId) {
+             const parent = allCategories.find(c => c.id === current?.parentId);
+             if (parent && categories.some(c => c.id === parent.id)) {
+                 relevantParent = parent;
+                 break;
+             }
+             current = parent;
+         }
+      }
+
+      if (relevantParent) {
+          spendingByCategory.set(
+            relevantParent.id,
+            (spendingByCategory.get(relevantParent.id) || 0) + transaction.amount
           );
-        }
       }
     }
 
-    if (isInteractive) {
-       const spendingByCategory = new Map<string, number>();
-        for (const transaction of expenseTransactions) {
-            spendingByCategory.set(
-                transaction.category,
-                (spendingByCategory.get(transaction.category) || 0) + transaction.amount
-            );
-        }
-       return categories
-        .filter(c => c.type === 'expense' && spendingByCategory.has(c.name))
+    return categories
         .map(category => ({
           ...category,
-          total: spendingByCategory.get(category.name) || 0,
+          total: spendingByCategory.get(category.id) || 0,
         }))
-        .sort((a, b) => b.total - a.total);
-    }
-
-    return Array.from(spendingByParentCategory.entries())
-        .map(([id, total]) => {
-          const category = categoryMap.get(id);
-          return {
-            id,
-            name: category?.name || 'Unknown',
-            total,
-          };
-        })
+        .filter(c => c.total > 0)
         .sort((a, b) => b.total - a.total);
 
-  }, [transactions, categories, isInteractive]);
+  }, [transactions, categories]);
 
   if (sortedCategories.length === 0) {
     return (

@@ -13,7 +13,7 @@ import {
 import { TimeRangePicker, type TimeRange } from '@/components/ui/time-range-picker';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, ArrowDown, ArrowUp, CalendarIcon } from 'lucide-react';
+import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, CalendarIcon } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { wallets as allWallets, transactions as allTransactions, categories as allCategories } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -29,6 +29,7 @@ import {
   endOfWeek,
   startOfDay,
   endOfDay,
+  parseISO,
 } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { Progress } from '@/components/ui/progress';
@@ -73,84 +74,79 @@ export function ReportsPage() {
         }
     }, []);
 
+    const { startDate, endDate } = useMemo(() => {
+        let start: Date, end: Date;
+        const now = new Date();
+
+        if (timeRange === 'custom' && customDateRange?.from && customDateRange?.to) {
+            start = startOfDay(customDateRange.from);
+            end = endOfDay(customDateRange.to);
+        } else {
+             const unit = timeRange === 'day' ? 'days' : timeRange === 'week' ? 'weeks' : timeRange === 'month' ? 'months' : 'years';
+            const dateWithOffset = dateOffset !== 0 ? (dateOffset > 0 ? add(now, { [unit]: dateOffset }) : sub(now, { [unit]: Math.abs(dateOffset) })) : now;
+            
+            switch (timeRange) {
+                case 'day':
+                    start = startOfDay(dateWithOffset);
+                    end = endOfDay(dateWithOffset);
+                    break;
+                case 'week':
+                    start = startOfWeek(dateWithOffset);
+                    end = endOfWeek(dateWithOffset);
+                    break;
+                case 'month':
+                    start = startOfMonth(dateWithOffset);
+                    end = endOfMonth(dateWithOffset);
+                    break;
+                case 'year':
+                    start = startOfYear(dateWithOffset);
+                    end = endOfYear(dateWithOffset);
+                    break;
+                case 'all':
+                default:
+                    start = new Date(0);
+                    end = new Date();
+                    break;
+            }
+        }
+        return { startDate: start, endDate: end };
+    }, [timeRange, customDateRange, dateOffset]);
+
+
     // Effect to update URL when state changes
     useEffect(() => {
-        const params = new URLSearchParams(searchParams);
+        const params = new URLSearchParams();
 
         if (selectedWallets.length > 0 && selectedWallets.length < allWallets.length) {
             params.set('wallets', selectedWallets.join(','));
-        } else {
-            params.delete('wallets');
         }
-
+        
         params.set('timeRange', timeRange);
-
-        if (timeRange === 'custom' && customDateRange?.from && customDateRange?.to) {
-            params.set('from', customDateRange.from.toISOString());
-            params.set('to', customDateRange.to.toISOString());
-        } else {
-            params.delete('from');
-            params.delete('to');
+        
+        if (startDate && endDate && timeRange !== 'all') {
+            params.set('from', startDate.toISOString());
+            params.set('to', endDate.toISOString());
         }
 
-        if (dateOffset !== 0 && timeRange !== 'all') {
+        if (dateOffset !== 0 && timeRange !== 'all' && timeRange !== 'custom') {
             params.set('offset', dateOffset.toString());
-        } else {
-            params.delete('offset');
         }
 
         router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    }, [selectedWallets, timeRange, customDateRange, dateOffset, pathname, router, searchParams]);
+    }, [selectedWallets, timeRange, startDate, endDate, dateOffset, pathname, router]);
     
     const financialSummary = useMemo(() => {
-        let startDate: Date | undefined;
-        let endDate: Date | undefined;
-        
-        const now = new Date();
-        if (timeRange === 'all') {
-            startDate = undefined;
-            endDate = undefined;
-        } else if (timeRange === 'custom' && customDateRange?.from && customDateRange?.to) {
-            startDate = startOfDay(customDateRange.from);
-            endDate = endOfDay(customDateRange.to);
-        } else {
-            const unit = timeRange === 'day' ? 'days' : timeRange === 'week' ? 'weeks' : timeRange === 'month' ? 'months' : 'years';
-            const dateWithOffset = dateOffset !== 0 ? (dateOffset > 0 ? add(now, { [unit]: dateOffset }) : sub(now, { [unit]: Math.abs(dateOffset) })) : now;
-
-            switch (timeRange) {
-                case 'day':
-                    startDate = startOfDay(dateWithOffset);
-                    endDate = endOfDay(dateWithOffset);
-                    break;
-                case 'week':
-                    startDate = startOfWeek(dateWithOffset);
-                    endDate = endOfWeek(dateWithOffset);
-                    break;
-                case 'month':
-                    startDate = startOfMonth(dateWithOffset);
-                    endDate = endOfMonth(dateWithOffset);
-                    break;
-                case 'year':
-                    startDate = startOfYear(dateWithOffset);
-                    endDate = endOfYear(dateWithOffset);
-                    break;
-                default:
-                    startDate = startOfMonth(now);
-                    endDate = endOfMonth(now);
-            }
-        }
-        
         const selectedWalletNames = allWallets.filter(w => selectedWallets.includes(w.id)).map(w => w.name);
 
         const transactionsInPeriod = allTransactions.filter(t => {
-            const transactionDate = new Date(t.date);
+            const transactionDate = parseISO(t.date);
             const inDateRange = startDate && endDate ? (transactionDate >= startDate && transactionDate <= endDate) : true;
             return selectedWalletNames.includes(t.wallet) && inDateRange;
         });
 
         const transactionsBeforePeriod = allTransactions.filter(t => {
             if (!startDate) return false;
-            const transactionDate = new Date(t.date);
+            const transactionDate = parseISO(t.date);
             return selectedWalletNames.includes(t.wallet) && transactionDate < startDate;
         });
         
@@ -176,10 +172,8 @@ export function ReportsPage() {
             openingBalance,
             endingBalance,
             transactionsInPeriod,
-            startDate,
-            endDate,
         };
-    }, [selectedWallets, timeRange, customDateRange, dateOffset]);
+    }, [selectedWallets, startDate, endDate]);
 
     const handleWalletToggle = (walletId: string) => {
         setSelectedWallets(prev => 
@@ -204,31 +198,27 @@ export function ReportsPage() {
     };
     
     const dateRangeDisplay = useMemo(() => {
-        if (timeRange === 'all') {
-            return 'All Time';
+        if (timeRange === 'all') return 'All Time';
+        if (timeRange === 'custom') {
+            if (customDateRange?.from && customDateRange.to) {
+                return `${format(customDateRange.from, 'LLL d, y')} - ${format(customDateRange.to, 'LLL d, y')}`;
+            }
+            return 'Custom Range';
         }
-        if (timeRange === 'custom' && customDateRange?.from && customDateRange?.to) {
-            return `${format(customDateRange.from, 'LLL d, y')} - ${format(customDateRange.to, 'LLL d, y')}`;
+        if (startDate && endDate) {
+             switch (timeRange) {
+                case 'day': return format(startDate, 'MMM d, yyyy');
+                case 'week': return `Week of ${format(startOfWeek(startDate), 'MMM d')} - ${format(endOfWeek(startDate), 'MMM d, yyyy')}`;
+                case 'month': return format(startDate, 'MMMM yyyy');
+                case 'year': 
+                    if (dateOffset === 0) return 'This Year';
+                    if (dateOffset === -1) return 'Last Year';
+                    return format(startDate, 'yyyy');
+                default: return 'Select Range';
+            }
         }
-        
-        let date = new Date();
-        const unit = timeRange === 'day' ? 'days' : timeRange === 'week' ? 'weeks' : timeRange === 'month' ? 'months' : 'years';
-        
-        if (dateOffset !== 0) {
-            date = dateOffset > 0 ? add(date, { [unit]: dateOffset }) : sub(date, { [unit]: Math.abs(dateOffset) });
-        }
-
-        switch (timeRange) {
-            case 'day': return format(date, 'MMM d, yyyy');
-            case 'week': return `Week of ${format(startOfWeek(date), 'MMM d')} - ${format(endOfWeek(date), 'MMM d, yyyy')}`;
-            case 'month': return format(date, 'MMMM yyyy');
-            case 'year': 
-                if (dateOffset === 0) return 'This Year';
-                if (dateOffset === -1) return 'Last Year';
-                return format(date, 'yyyy');
-            default: return 'Select Range';
-        }
-    }, [timeRange, customDateRange, dateOffset]);
+        return 'Loading...';
+    }, [timeRange, customDateRange, startDate, endDate, dateOffset]);
     
     const expensePercentage = financialSummary.totalIncome > 0 ? (financialSummary.totalExpense / financialSummary.totalIncome) * 100 : 0;
 

@@ -47,66 +47,62 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
   const [isSheetOpen, setSheetOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
-
   const category = useMemo(() => 
     allCategories.find(c => c.id === params.id),
     [params.id]
   );
   
-  const from = searchParams.get('from');
-  const to = searchParams.get('to');
+  const { from, to } = useMemo(() => ({
+    from: searchParams.get('from'),
+    to: searchParams.get('to'),
+  }), [searchParams]);
 
-  const { totalExpenses, dailyAverage, subCategories, chartTransactions, filteredTransactionsForTable } = useMemo(() => {
-    if (!category) return { totalExpenses: 0, dailyAverage: 0, subCategories: [], chartTransactions: [], filteredTransactionsForTable: [] };
+  const { totalExpenses, dailyAverage, subCategories, filteredTransactions } = useMemo(() => {
+    if (!category) return { totalExpenses: 0, dailyAverage: 0, subCategories: [], filteredTransactions: [] };
 
     const startDate = from ? parseISO(from) : new Date(0);
     const endDate = to ? parseISO(to) : new Date();
 
-    const childrenCategories = allCategories.filter(c => c.parentId === category.id);
-    const descendantIds = new Set([category.id]);
+    const descendantIds = new Set<string>();
     const getDescendants = (catId: string) => {
+        descendantIds.add(catId);
         const children = allCategories.filter(c => c.parentId === catId);
-        children.forEach(child => {
-            descendantIds.add(child.id);
-            getDescendants(child.id);
-        });
+        children.forEach(child => getDescendants(child.id));
     };
     getDescendants(category.id);
-    const descendantCategoryNames = allCategories
-        .filter(c => descendantIds.has(c.id))
-        .map(c => c.name);
+    
+    const descendantCategoryNames = Array.from(descendantIds)
+        .map(id => allCategories.find(c => c.id === id)?.name)
+        .filter((name): name is string => !!name);
 
     const allRelatedTransactions = transactions.filter(t => {
-      const transactionDate = new Date(t.date);
+      const transactionDate = parseISO(t.date);
       return descendantCategoryNames.includes(t.category) &&
              transactionDate >= startDate &&
              transactionDate <= endDate;
     });
-    
-    const tableTransactions = selectedSubCategory 
-        ? allRelatedTransactions.filter(t => t.category === selectedSubCategory)
-        : allRelatedTransactions;
 
     const total = allRelatedTransactions.reduce((acc, t) => acc + t.amount, 0);
 
     const days = differenceInDays(endDate, startDate) + 1;
     const average = days > 0 ? total / days : 0;
     
-    const relevantCategories = childrenCategories.length > 0 ? childrenCategories : [category];
-    const donutChartTransactions = childrenCategories.length > 0 
-        ? allRelatedTransactions.filter(t => t.category !== category.name)
-        : allRelatedTransactions;
-
-
+    const directChildren = allCategories.filter(c => c.parentId === category.id);
+    
     return { 
-        transactions: allRelatedTransactions,
-        chartTransactions: donutChartTransactions, 
         totalExpenses: total, 
         dailyAverage: average, 
-        subCategories: relevantCategories,
-        filteredTransactionsForTable: tableTransactions,
+        subCategories: directChildren.length > 0 ? directChildren : [category],
+        filteredTransactions: allRelatedTransactions,
     };
-  }, [category, from, to, selectedSubCategory, transactions]);
+  }, [category, from, to, transactions]);
+
+  const tableTransactions = useMemo(() => {
+      if (selectedSubCategory) {
+          return filteredTransactions.filter(t => t.category === selectedSubCategory);
+      }
+      return filteredTransactions;
+  }, [filteredTransactions, selectedSubCategory]);
   
   const handleEditTransaction = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
@@ -194,11 +190,11 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
           <TabsContent value="breakdown">
              <div className="grid gap-6 mt-6 md:grid-cols-2">
                 <CategoriesDonutChart 
-                    transactions={chartTransactions} 
+                    transactions={filteredTransactions} 
                     categories={subCategories}
                 />
                 <CategorySpendingList
-                    transactions={chartTransactions}
+                    transactions={filteredTransactions}
                     categories={subCategories}
                     onCategoryClick={handleSubCategoryClick}
                     isInteractive
@@ -227,9 +223,9 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredTransactionsForTable.map((transaction) => (
+                                {tableTransactions.map((transaction) => (
                                     <TableRow key={transaction.id} onClick={() => handleEditTransaction(transaction)} className="cursor-pointer">
-                                        <TableCell>{format(new Date(transaction.date), 'dd MMM yyyy')}</TableCell>
+                                        <TableCell>{format(parseISO(transaction.date), 'dd MMM yyyy')}</TableCell>
                                         <TableCell className="font-medium">{transaction.description}</TableCell>
                                         <TableCell>
                                         <Badge variant="outline">{transaction.category}</Badge>
@@ -241,7 +237,7 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
                                 ))}
                             </TableBody>
                         </Table>
-                         {filteredTransactionsForTable.length === 0 && (
+                         {tableTransactions.length === 0 && (
                             <div className="text-center p-8 text-muted-foreground">
                                 No transactions found for this selection.
                             </div>

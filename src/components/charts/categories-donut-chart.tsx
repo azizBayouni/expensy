@@ -29,7 +29,7 @@ const COLORS = [
 ];
 
 const renderCustomizedLabel = (props: any) => {
-  const { cx, cy, midAngle, innerRadius, outerRadius, percent, index, name, fill } = props;
+  const { cx, cy, midAngle, innerRadius, outerRadius, percent, name, fill } = props;
   const RADIAN = Math.PI / 180;
   const radius = innerRadius + (outerRadius - innerRadius) * 1.4;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -59,33 +59,49 @@ export function CategoriesDonutChart({
   const { chartData, totalExpenses } = useMemo(() => {
     const expenseTransactions = transactions.filter(t => t.type === 'expense');
     const totalExpenses = expenseTransactions.reduce((acc, t) => acc + t.amount, 0);
+    
+    const categoryMap = new Map(allCategories.map(c => [c.name, c.id]));
+    const categoryIdMap = new Map(allCategories.map(c => [c.id, c]));
 
-    const categoryMap = new Map(categories.map(c => [c.name, c]));
-    const parentCategories = categories.filter(c => !c.parentId && c.type === 'expense');
-
-    const getParentCategory = (categoryName: string): Category | undefined => {
-      let current = categoryMap.get(categoryName);
-      while (current?.parentId) {
-        const parent = categories.find(c => c.id === current.parentId);
-        if (!parent) return current;
-        current = parent;
-      }
-      return current;
+    const getRootParent = (categoryId: string): Category | undefined => {
+        let current = categoryIdMap.get(categoryId);
+        if (!current) return undefined;
+        while (current?.parentId) {
+            const parent = categoryIdMap.get(current.parentId);
+            if (!parent) return current;
+            current = parent;
+        }
+        return current;
     };
-
+    
     const spendingByCategory = new Map<string, number>();
 
     for (const transaction of expenseTransactions) {
-      const parent = getParentCategory(transaction.category);
-      if (parent) {
-        spendingByCategory.set(
-          parent.name,
-          (spendingByCategory.get(parent.name) || 0) + transaction.amount
-        );
-      }
-    }
+        const categoryId = categoryMap.get(transaction.category);
+        if (!categoryId) continue;
 
-    const chartData = parentCategories
+        // Use the passed `categories` prop to determine which level to aggregate at.
+        // This is the key change. We check if the transaction's category is one of the `categories`
+        // passed to the component. If so, we aggregate under it. If not, we find its root parent.
+        const relevantCategory = categories.find(c => c.id === categoryId);
+
+        if (relevantCategory) {
+            spendingByCategory.set(
+              relevantCategory.name,
+              (spendingByCategory.get(relevantCategory.name) || 0) + transaction.amount
+            );
+        } else {
+             const rootParent = getRootParent(categoryId);
+             if (rootParent && categories.some(c => c.id === rootParent.id)) {
+                 spendingByCategory.set(
+                  rootParent.name,
+                  (spendingByCategory.get(rootParent.name) || 0) + transaction.amount
+                );
+             }
+        }
+    }
+    
+    const chartData = categories
       .map(category => ({
         name: category.name,
         value: spendingByCategory.get(category.name) || 0,
@@ -101,7 +117,7 @@ export function CategoriesDonutChart({
       <Card className={className}>
         <CardHeader>
           <CardTitle>Expense Breakdown</CardTitle>
-          <CardDescription>Spending by parent category.</CardDescription>
+          <CardDescription>Spending by category.</CardDescription>
         </CardHeader>
         <CardContent className="flex h-60 items-center justify-center">
           <p className="text-muted-foreground">No expense data for this period.</p>
@@ -124,7 +140,7 @@ export function CategoriesDonutChart({
     <Card className={className}>
       <CardHeader>
         <CardTitle>Expense Breakdown</CardTitle>
-        <CardDescription>Spending by parent category.</CardDescription>
+        <CardDescription>Spending by category.</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer
