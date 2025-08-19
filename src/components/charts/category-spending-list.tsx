@@ -53,44 +53,39 @@ export function CategorySpendingList({
 
   const sortedCategories = useMemo(() => {
     const expenseTransactions = transactions.filter(t => t.type === 'expense');
-    const spendingByCategory = new Map<string, number>();
-
-    for (const transaction of expenseTransactions) {
-      spendingByCategory.set(
-        transaction.category,
-        (spendingByCategory.get(transaction.category) || 0) + transaction.amount
-      );
-    }
+    const categoryMap = new Map(categories.map(c => [c.id, c]));
     
-    const relevantCategories = categories.filter(c => 
-        c.type === 'expense' && (spendingByCategory.has(c.name) || c.parentId)
-    );
-
-    const getParentCategory = (categoryName: string): Category | undefined => {
-      let current = categories.find(c => c.name === categoryName);
-      while (current?.parentId) {
-        const parent = categories.find(c => c.id === current.parentId);
-        if (!parent) return current;
-        current = parent;
+    const getParentCategory = (categoryId: string): Category | undefined => {
+      let current = categoryMap.get(categoryId);
+      while (current?.parentId && categoryMap.has(current.parentId)) {
+        current = categoryMap.get(current.parentId);
       }
       return current;
     };
     
-    const spendingByParentCategory = new Map<string, { total: number; children: Set<string> }>();
+    const spendingByParentCategory = new Map<string, number>();
 
     for (const transaction of expenseTransactions) {
-      const parent = getParentCategory(transaction.category);
-      if (parent) {
-        const current = spendingByParentCategory.get(parent.name) || { total: 0, children: new Set() };
-        current.total += transaction.amount;
-        if(transaction.category !== parent.name) {
-            current.children.add(transaction.category);
+      const category = categories.find(c => c.name === transaction.category);
+      if (category) {
+        const parent = getParentCategory(category.id);
+        if (parent) {
+          spendingByParentCategory.set(
+            parent.id,
+            (spendingByParentCategory.get(parent.id) || 0) + transaction.amount
+          );
         }
-        spendingByParentCategory.set(parent.name, current);
       }
     }
-    
+
     if (isInteractive) {
+       const spendingByCategory = new Map<string, number>();
+        for (const transaction of expenseTransactions) {
+            spendingByCategory.set(
+                transaction.category,
+                (spendingByCategory.get(transaction.category) || 0) + transaction.amount
+            );
+        }
        return categories
         .filter(c => c.type === 'expense' && spendingByCategory.has(c.name))
         .map(category => ({
@@ -101,11 +96,14 @@ export function CategorySpendingList({
     }
 
     return Array.from(spendingByParentCategory.entries())
-        .map(([name, data]) => ({
-            name,
-            total: data.total,
-            id: categories.find(c => c.name === name)?.id || name,
-        }))
+        .map(([id, total]) => {
+          const category = categoryMap.get(id);
+          return {
+            id,
+            name: category?.name || 'Unknown',
+            total,
+          };
+        })
         .sort((a, b) => b.total - a.total);
 
   }, [transactions, categories, isInteractive]);

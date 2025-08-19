@@ -12,6 +12,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { allCategories } from '@/lib/data';
 
 interface CategoriesDonutChartProps {
   transactions: Transaction[];
