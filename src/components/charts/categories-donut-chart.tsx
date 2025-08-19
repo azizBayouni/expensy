@@ -27,6 +27,29 @@ const COLORS = [
   'hsl(var(--chart-5))',
 ];
 
+const renderCustomizedLabel = (props: any) => {
+  const { cx, cy, midAngle, innerRadius, outerRadius, percent, index, name } = props;
+  const RADIAN = Math.PI / 180;
+  const radius = innerRadius + (outerRadius - innerRadius) * 1.25;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  const textAnchor = x > cx ? 'start' : 'end';
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="hsl(var(--foreground))"
+      textAnchor={textAnchor}
+      dominantBaseline="central"
+      className="text-xs"
+    >
+      {`${name} (${(percent * 100).toFixed(0)}%)`}
+    </text>
+  );
+};
+
+
 export function CategoriesDonutChart({
   transactions,
   categories,
@@ -111,7 +134,7 @@ export function CategoriesDonutChart({
             <PieChart>
               <Tooltip
                 cursor={false}
-                content={<ChartTooltipContent hideLabel />}
+                content={<ChartTooltipContent hideLabel hideIndicator />}
               />
               <Pie
                 data={chartData}
@@ -122,6 +145,7 @@ export function CategoriesDonutChart({
                 innerRadius="60%"
                 outerRadius="80%"
                 paddingAngle={5}
+                label={renderCustomizedLabel}
                 labelLine={false}
               >
                 {chartData.map((entry, index) => (
