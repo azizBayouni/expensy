@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from 'react';
 import { notFound, useRouter, useSearchParams } from 'next/navigation';
-import { transactions as allTransactions, categories as allCategories } from '@/lib/data';
+import { transactions as allTransactions, categories as allCategories, updateTransactions } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import {
@@ -28,6 +28,14 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
+import { TransactionForm } from '@/components/transaction-form';
 
 
 export default function CategoryReportPage({ params }: { params: { id: string } }) {
@@ -35,6 +43,10 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('breakdown');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>(allTransactions);
+  const [isSheetOpen, setSheetOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+
 
   const category = useMemo(() => 
     allCategories.find(c => c.id === params.id),
@@ -44,8 +56,8 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
   const from = searchParams.get('from');
   const to = searchParams.get('to');
 
-  const { transactions, totalExpenses, dailyAverage, subCategories, filteredTransactionsForTable } = useMemo(() => {
-    if (!category) return { transactions: [], totalExpenses: 0, dailyAverage: 0, subCategories: [], filteredTransactionsForTable: [] };
+  const { totalExpenses, dailyAverage, subCategories, chartTransactions, filteredTransactionsForTable } = useMemo(() => {
+    if (!category) return { totalExpenses: 0, dailyAverage: 0, subCategories: [], chartTransactions: [], filteredTransactionsForTable: [] };
 
     const startDate = from ? parseISO(from) : new Date(0);
     const endDate = to ? parseISO(to) : new Date();
@@ -64,7 +76,7 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
         .filter(c => descendantIds.has(c.id))
         .map(c => c.name);
 
-    const allRelatedTransactions = allTransactions.filter(t => {
+    const allRelatedTransactions = transactions.filter(t => {
       const transactionDate = new Date(t.date);
       return descendantCategoryNames.includes(t.category) &&
              transactionDate >= startDate &&
@@ -81,19 +93,39 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
     const average = days > 0 ? total / days : 0;
     
     const relevantCategories = childrenCategories.length > 0 ? childrenCategories : [category];
-    const chartTransactions = childrenCategories.length > 0 
+    const donutChartTransactions = childrenCategories.length > 0 
         ? allRelatedTransactions.filter(t => t.category !== category.name)
         : allRelatedTransactions;
 
 
     return { 
-        transactions: chartTransactions, 
+        transactions: allRelatedTransactions,
+        chartTransactions: donutChartTransactions, 
         totalExpenses: total, 
         dailyAverage: average, 
         subCategories: relevantCategories,
         filteredTransactionsForTable: tableTransactions,
     };
-  }, [category, from, to, selectedSubCategory]);
+  }, [category, from, to, selectedSubCategory, transactions]);
+  
+  const handleEditTransaction = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setSheetOpen(true);
+  };
+  
+  const handleFormSubmit = (data: Transaction) => {
+    const newTransactions = transactions.map((t) => (t.id === data.id ? data : t));
+    updateTransactions(newTransactions);
+    setTransactions(newTransactions);
+    setSheetOpen(false);
+  };
+
+  const handleDeleteTransaction = (id: string) => {
+    const newTransactions = transactions.filter((t) => t.id !== id);
+    updateTransactions(newTransactions);
+    setTransactions(newTransactions);
+    setSheetOpen(false);
+  };
 
   const handleSubCategoryClick = (categoryName: string) => {
     setSelectedSubCategory(categoryName);
@@ -162,11 +194,11 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
           <TabsContent value="breakdown">
              <div className="grid gap-6 mt-6 md:grid-cols-2">
                 <CategoriesDonutChart 
-                    transactions={transactions} 
+                    transactions={chartTransactions} 
                     categories={subCategories}
                 />
                 <CategorySpendingList
-                    transactions={transactions}
+                    transactions={chartTransactions}
                     categories={subCategories}
                     onCategoryClick={handleSubCategoryClick}
                     isInteractive
@@ -196,7 +228,7 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
                             </TableHeader>
                             <TableBody>
                                 {filteredTransactionsForTable.map((transaction) => (
-                                    <TableRow key={transaction.id}>
+                                    <TableRow key={transaction.id} onClick={() => handleEditTransaction(transaction)} className="cursor-pointer">
                                         <TableCell>{format(new Date(transaction.date), 'dd MMM yyyy')}</TableCell>
                                         <TableCell className="font-medium">{transaction.description}</TableCell>
                                         <TableCell>
@@ -219,6 +251,21 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
             </Card>
           </TabsContent>
         </Tabs>
+        
+        <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
+            <SheetContent className="sm:max-w-[500px]">
+                <SheetHeader>
+                    <SheetTitle>Edit Transaction</SheetTitle>
+                    <SheetDescription>Update the details of your transaction.</SheetDescription>
+                </SheetHeader>
+                <TransactionForm
+                    onSubmit={handleFormSubmit}
+                    transaction={selectedTransaction}
+                    onDelete={handleDeleteTransaction}
+                    onCancel={() => setSheetOpen(false)}
+                />
+            </SheetContent>
+        </Sheet>
     </div>
   );
 }

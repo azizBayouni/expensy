@@ -72,36 +72,46 @@ export function ReportsPage() {
         if (offset) {
             setDateOffset(parseInt(offset, 10));
         }
-    }, [searchParams]);
+    }, []);
 
     // Effect to update URL when state changes
     useEffect(() => {
-        const params = new URLSearchParams();
+        const params = new URLSearchParams(searchParams);
 
         if (selectedWallets.length > 0 && selectedWallets.length < allWallets.length) {
             params.set('wallets', selectedWallets.join(','));
+        } else {
+            params.delete('wallets');
         }
+
         params.set('timeRange', timeRange);
+
         if (timeRange === 'custom' && customDateRange?.from && customDateRange?.to) {
             params.set('from', customDateRange.from.toISOString());
             params.set('to', customDateRange.to.toISOString());
+        } else {
+            params.delete('from');
+            params.delete('to');
         }
+
         if (dateOffset !== 0) {
             params.set('offset', dateOffset.toString());
+        } else {
+            params.delete('offset');
         }
 
         router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    }, [selectedWallets, timeRange, customDateRange, dateOffset, pathname, router]);
+    }, [selectedWallets, timeRange, customDateRange, dateOffset, pathname, router, searchParams]);
     
     const financialSummary = useMemo(() => {
         let startDate: Date;
         let endDate: Date;
         
+        const now = new Date();
         if (timeRange === 'custom' && customDateRange?.from && customDateRange?.to) {
             startDate = startOfDay(customDateRange.from);
             endDate = endOfDay(customDateRange.to);
         } else {
-            const now = new Date();
             const unit = timeRange === 'day' ? 'days' : timeRange === 'week' ? 'weeks' : timeRange === 'month' ? 'months' : 'years';
             const dateWithOffset = dateOffset !== 0 ? (dateOffset > 0 ? add(now, { [unit]: dateOffset }) : sub(now, { [unit]: Math.abs(dateOffset) })) : now;
 
@@ -201,7 +211,7 @@ export function ReportsPage() {
 
         switch (timeRange) {
             case 'day': return format(date, 'LLL d, y');
-            case 'week': return `Week of ${format(date, 'LLL d, y')}`;
+            case 'week': return `Week of ${format(startOfWeek(date), 'LLL d')} - ${format(endOfWeek(date), 'LLL d, y')}`;
             case 'month': return format(date, 'LLLL yyyy');
             case 'year': return format(date, 'yyyy');
             default: return 'Select Range';
@@ -224,7 +234,7 @@ export function ReportsPage() {
             <Button variant="outline" size="icon" onClick={() => handleDateOffsetChange('prev')} disabled={timeRange === 'custom'}>
                 <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div className="text-center font-medium min-w-[180px]">{dateRangeDisplay}</div>
+            <div className="text-center font-medium min-w-[220px]">{dateRangeDisplay}</div>
             <Button variant="outline" size="icon" onClick={() => handleDateOffsetChange('next')} disabled={timeRange === 'custom'}>
                 <ChevronRight className="h-4 w-4" />
             </Button>
