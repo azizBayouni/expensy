@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -21,6 +22,7 @@ interface TimeRangePickerProps {
   customDateRange?: DateRange;
   onTimeRangeChange: (timeRange: TimeRange, customDateRange?: DateRange) => void;
   className?: string;
+  displayValue: string;
 }
 
 const timeRangeOptions: { label: string; value: TimeRange }[] = [
@@ -36,6 +38,7 @@ export function TimeRangePicker({
   customDateRange,
   onTimeRangeChange,
   className,
+  displayValue,
 }: TimeRangePickerProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isCustomDialogOpen, setIsCustomDialogOpen] = useState(false);
@@ -44,22 +47,12 @@ export function TimeRangePicker({
     onTimeRangeChange('custom', range);
   };
   
-  const getButtonLabel = () => {
-    if (timeRange === 'custom' && customDateRange?.from && customDateRange?.to) {
-       return `${format(customDateRange.from, 'dd MMM yyyy')} - ${format(
-        customDateRange.to,
-        'dd MMM yyyy'
-      )}`;
-    }
-    return timeRangeOptions.find(opt => opt.value === timeRange)?.label || 'Select Range';
-  }
-
   return (
     <>
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetTrigger asChild>
-          <Button variant="outline" className={cn('w-[240px] justify-start text-left font-normal', className)}>
-            <span>{getButtonLabel()}</span>
+          <Button variant="ghost" className={cn('w-auto justify-center text-center font-normal', className)}>
+            <span>{displayValue}</span>
           </Button>
         </SheetTrigger>
         <SheetContent side="bottom" className="sm:max-w-none w-full md:w-auto">

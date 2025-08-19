@@ -43,7 +43,7 @@ export function ReportsPage() {
     const searchParams = useSearchParams();
 
     const [selectedWallets, setSelectedWallets] = useState<string[]>([]);
-    const [timeRange, setTimeRange] = useState<TimeRange>('month');
+    const [timeRange, setTimeRange] = useState<TimeRange>('year');
     const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
     const [dateOffset, setDateOffset] = useState(0);
 
@@ -210,10 +210,13 @@ export function ReportsPage() {
         }
 
         switch (timeRange) {
-            case 'day': return format(date, 'LLL d, y');
-            case 'week': return `Week of ${format(startOfWeek(date), 'LLL d')} - ${format(endOfWeek(date), 'LLL d, y')}`;
-            case 'month': return format(date, 'LLLL yyyy');
-            case 'year': return format(date, 'yyyy');
+            case 'day': return format(date, 'MMM d, yyyy');
+            case 'week': return `Week of ${format(startOfWeek(date), 'MMM d')} - ${format(endOfWeek(date), 'MMM d, yyyy')}`;
+            case 'month': return format(date, 'MMMM yyyy');
+            case 'year': 
+                if (dateOffset === 0) return 'This Year';
+                if (dateOffset === -1) return 'Last Year';
+                return format(date, 'yyyy');
             default: return 'Select Range';
         }
     }, [timeRange, customDateRange, dateOffset]);
@@ -225,122 +228,111 @@ export function ReportsPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-            <h2 className="text-2xl font-bold tracking-tight">Reports</h2>
-            <p className="text-muted-foreground">
-              Analyze your financial data with detailed reports.
-            </p>
+            <p className="text-muted-foreground">Balance</p>
+            <p className="text-2xl font-bold">{financialSummary.endingBalance.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
         </div>
          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => handleDateOffsetChange('prev')} disabled={timeRange === 'custom'}>
+            <Popover>
+                <PopoverTrigger asChild>
+                    <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full md:w-[200px] justify-between"
+                    >
+                        <span>
+                            {selectedWallets.length === allWallets.length
+                                ? "Total"
+                                : `${selectedWallets.length} wallets selected`}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full md:w-[200px] p-0">
+                    <Command>
+                        <CommandInput placeholder="Search wallets..." />
+                        <CommandList>
+                            <CommandEmpty>No wallets found.</CommandEmpty>
+                            <CommandGroup>
+                                {allWallets.map((wallet) => (
+                                    <CommandItem
+                                        key={wallet.id}
+                                        onSelect={() => handleWalletToggle(wallet.id)}
+                                        className="cursor-pointer"
+                                    >
+                                        <Check
+                                            className={cn(
+                                                "mr-2 h-4 w-4",
+                                                selectedWallets.includes(wallet.id) ? "opacity-100" : "opacity-0"
+                                            )}
+                                        />
+                                        <span>{wallet.name}</span>
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+         </div>
+      </div>
+       <div className="flex items-center justify-between">
+            <Button variant="ghost" size="icon" onClick={() => handleDateOffsetChange('prev')} disabled={timeRange === 'custom'}>
                 <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div className="text-center font-medium min-w-[220px]">{dateRangeDisplay}</div>
-            <Button variant="outline" size="icon" onClick={() => handleDateOffsetChange('next')} disabled={timeRange === 'custom'}>
+            <TimeRangePicker 
+                timeRange={timeRange}
+                customDateRange={customDateRange}
+                onTimeRangeChange={handleTimeRangeChange}
+                displayValue={dateRangeDisplay}
+            />
+            <Button variant="ghost" size="icon" onClick={() => handleDateOffsetChange('next')} disabled={timeRange === 'custom'}>
                 <ChevronRight className="h-4 w-4" />
             </Button>
         </div>
-      </div>
       
-      <div className="flex flex-col md:flex-row gap-4">
-        <Popover>
-            <PopoverTrigger asChild>
-                <Button
-                    variant="outline"
-                    role="combobox"
-                    className="w-full md:w-[200px] justify-between"
-                >
-                    <span>
-                        {selectedWallets.length === allWallets.length
-                            ? "All Wallets"
-                            : `${selectedWallets.length} selected`}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full md:w-[200px] p-0">
-                <Command>
-                    <CommandInput placeholder="Search wallets..." />
-                    <CommandList>
-                        <CommandEmpty>No wallets found.</CommandEmpty>
-                        <CommandGroup>
-                            {allWallets.map((wallet) => (
-                                <CommandItem
-                                    key={wallet.id}
-                                    onSelect={() => handleWalletToggle(wallet.id)}
-                                    className="cursor-pointer"
-                                >
-                                    <Check
-                                        className={cn(
-                                            "mr-2 h-4 w-4",
-                                            selectedWallets.includes(wallet.id) ? "opacity-100" : "opacity-0"
-                                        )}
-                                    />
-                                    <span>{wallet.name}</span>
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-        </Popover>
-
-        <TimeRangePicker 
-            timeRange={timeRange}
-            customDateRange={customDateRange}
-            onTimeRangeChange={handleTimeRangeChange}
-        />
-      </div>
-
        <Card>
-        <CardHeader>
-          <CardDescription>Ending Balance</CardDescription>
-          <CardTitle className="text-4xl">{financialSummary.endingBalance.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</CardTitle>
-        </CardHeader>
-        <CardContent>
-           <p className="text-xs text-muted-foreground">
-            Opening balance of {financialSummary.openingBalance.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
-          </p>
+        <CardContent className="p-4">
+            <div className="flex justify-between text-sm">
+                <p className="text-muted-foreground">Opening balance</p>
+                <p>{financialSummary.openingBalance.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
+            </div>
+            <div className="flex justify-between text-sm font-medium">
+                <p>Ending balance</p>
+                <p>{financialSummary.endingBalance.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
+            </div>
         </CardContent>
       </Card>
       
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-1">
         <Card>
           <CardHeader>
             <CardTitle>Net Income</CardTitle>
-            <CardDescription>
-              Your total income versus expenses for the selected period.
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className={`text-3xl font-bold ${financialSummary.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={`text-3xl font-bold`}>
               {financialSummary.netIncome.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
             </div>
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                 <div className="flex items-center text-green-600">
-                    <ArrowUp className="w-4 h-4 mr-1" />
+              <div className="flex justify-between items-center text-sm">
+                 <div className="flex items-center text-muted-foreground">
                     <span>Income</span>
                  </div>
-                 <span>{financialSummary.totalIncome.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</span>
+                 <span className="text-green-400 font-medium">{financialSummary.totalIncome.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center text-red-600">
-                  <ArrowDown className="w-4 h-4 mr-1" />
+              <div className="flex justify-between items-center text-sm">
+                <div className="flex items-center text-muted-foreground">
                   <span>Expense</span>
                 </div>
-                 <span>{financialSummary.totalExpense.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</span>
+                 <span className="text-red-400 font-medium">{financialSummary.totalExpense.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</span>
               </div>
             </div>
-            <Progress value={expensePercentage} className="h-2" />
+            <Progress value={expensePercentage} className="h-2 [&>div]:bg-chart-1" />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>Category Report</CardTitle>
-            <CardDescription>
-              Breakdown of your spending by category.
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="breakdown">
@@ -350,9 +342,12 @@ export function ReportsPage() {
               </TabsList>
               <TabsContent value="breakdown" className="pt-4">
                  <div className="space-y-4">
-                    <div className="flex justify-between items-baseline">
-                        <p className="text-muted-foreground">Total Expenses</p>
-                        <p className="text-2xl font-bold">{financialSummary.totalExpense.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
+                    <div className="flex justify-between items-center p-2 rounded-md hover:bg-accent cursor-pointer">
+                        <div>
+                            <p className="text-sm text-muted-foreground">Total Expense</p>
+                            <p className="font-bold text-red-400">{financialSummary.totalExpense.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
+                        </div>
+                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <CategorySpendingList 
                         transactions={financialSummary.transactionsInPeriod} 

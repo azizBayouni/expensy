@@ -17,6 +17,7 @@ import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '../ui/button';
 import { useSearchParams } from 'next/navigation';
+import { ChevronRight } from 'lucide-react';
 
 interface CategorySpendingListProps {
   transactions: Transaction[];
@@ -30,6 +31,14 @@ const getIconComponent = (icon: string | LucideIcon): LucideIcon => {
     if (typeof icon === 'function') return icon;
     return (LucideIcons[icon as keyof typeof LucideIcons] as LucideIcon) || LucideIcons.HelpCircle;
 }
+
+const COLORS = [
+  'bg-chart-2',
+  'bg-chart-1',
+  'bg-chart-4',
+  'bg-chart-5',
+  'bg-chart-3',
+];
 
 export function CategorySpendingList({
   transactions,
@@ -115,26 +124,20 @@ export function CategorySpendingList({
     );
   }
 
-  const renderItem = (category: any) => {
-    const Icon = getIconComponent(category.icon || 'HelpCircle');
-    const parent = categories.find(p => p.id === category.parentId);
+  const renderItem = (category: any, index: number) => {
     const linkHref = `/reports/category/${category.id}?from=${from || ''}&to=${to || ''}`;
 
     const content = (
-      <div className="flex items-center gap-4 p-2 rounded-md hover:bg-muted/50 w-full text-left h-auto">
-        <div className="p-2 bg-muted/50 rounded-md">
-          <Icon className="w-5 h-5 text-muted-foreground" />
-        </div>
+      <div className="flex items-center gap-4 p-2 rounded-md hover:bg-accent w-full text-left h-auto">
+        <div className={`w-2 h-2 rounded-full ${COLORS[index % COLORS.length]}`}></div>
         <div className="flex-1">
           <p className="font-medium">{category.name}</p>
-          {parent && (
-            <p className="text-xs text-muted-foreground">{parent.name}</p>
-          )}
         </div>
-        <div className="text-right">
-          <p className="font-semibold text-red-600">
+        <div className="flex items-center gap-2">
+          <p className="font-semibold text-red-400">
             -{category.total.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
           </p>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </div>
       </div>
     );
@@ -161,17 +164,11 @@ export function CategorySpendingList({
 
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle>Spending by Category</CardTitle>
-        <CardDescription>A detailed list of your spending.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[350px]">
+    <Card className={`${className} bg-transparent border-none shadow-none`}>
+      <CardContent className="p-0">
           <div className="space-y-1">
-            {sortedCategories.map(renderItem)}
+            {sortedCategories.map((cat, i) => renderItem(cat, i))}
           </div>
-        </ScrollArea>
       </CardContent>
     </Card>
   );
