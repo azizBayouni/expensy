@@ -14,6 +14,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import * as LucideIcons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '../ui/button';
 
 interface CategorySpendingListProps {
   transactions: Transaction[];
@@ -73,29 +75,31 @@ export function CategorySpendingList({
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[350px]">
-          <div className="space-y-4">
+          <div className="space-y-1">
             {sortedCategories.map(category => {
                 const Icon = getIconComponent(category.icon);
                 const parent = categories.find(p => p.id === category.parentId);
                 return (
-                    <div key={category.id} className="flex items-center gap-4">
-                        <div className="p-2 bg-muted/50 rounded-md">
-                            <Icon className="w-5 h-5 text-muted-foreground" />
-                        </div>
-                        <div className="flex-1">
-                            <p className="font-medium">{category.name}</p>
-                             {parent && (
-                                <p className="text-xs text-muted-foreground">
-                                    {parent.name}
-                                </p>
-                            )}
-                        </div>
-                        <div className="text-right">
-                           <p className="font-semibold text-red-600">
-                             -{category.total.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
-                           </p>
-                        </div>
-                    </div>
+                    <Button variant="ghost" className="w-full h-auto justify-start" asChild key={category.id}>
+                        <Link href={`/reports/category/${category.id}`} className="flex items-center gap-4 p-2 rounded-md hover:bg-muted/50">
+                            <div className="p-2 bg-muted/50 rounded-md">
+                                <Icon className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                            <div className="flex-1 text-left">
+                                <p className="font-medium">{category.name}</p>
+                                 {parent && (
+                                    <p className="text-xs text-muted-foreground">
+                                        {parent.name}
+                                    </p>
+                                )}
+                            </div>
+                            <div className="text-right">
+                               <p className="font-semibold text-red-600">
+                                 -{category.total.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
+                               </p>
+                            </div>
+                        </Link>
+                    </Button>
                 );
             })}
           </div>

@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, ArrowDown, ArrowUp } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { wallets as allWallets, transactions as allTransactions } from '@/lib/data';
+import { wallets as allWallets, transactions as allTransactions, categories as allCategories } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import {
   add,
@@ -32,6 +32,9 @@ import {
 } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { Progress } from '@/components/ui/progress';
+import { CategoriesDonutChart } from '@/components/charts/categories-donut-chart';
+import { CategorySpendingList } from '@/components/charts/category-spending-list';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 export function ReportsPage() {
@@ -324,13 +327,37 @@ export function ReportsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Reports Content</CardTitle>
+            <CardTitle>Category Report</CardTitle>
             <CardDescription>
-              This is the main content area for the reports. More features will be added here.
+              Breakdown of your spending by category.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p>Placeholder content for the reports page.</p>
+            <Tabs defaultValue="breakdown">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="breakdown">Breakdown</TabsTrigger>
+                <TabsTrigger value="chart">Chart</TabsTrigger>
+              </TabsList>
+              <TabsContent value="breakdown" className="pt-4">
+                 <div className="space-y-4">
+                    <div className="flex justify-between items-baseline">
+                        <p className="text-muted-foreground">Total Expenses</p>
+                        <p className="text-2xl font-bold">{financialSummary.totalExpense.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
+                    </div>
+                    <CategorySpendingList 
+                        transactions={financialSummary.transactionsInPeriod} 
+                        categories={allCategories}
+                    />
+                 </div>
+              </TabsContent>
+              <TabsContent value="chart">
+                <CategoriesDonutChart 
+                    transactions={financialSummary.transactionsInPeriod} 
+                    categories={allCategories}
+                    className="col-span-1 lg:col-span-2"
+                />
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
