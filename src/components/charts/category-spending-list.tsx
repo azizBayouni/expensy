@@ -128,16 +128,14 @@ export function CategorySpendingList({
     const linkHref = `/reports/category/${category.id}?from=${from || ''}&to=${to || ''}`;
 
     const content = (
-      <div className="flex items-center gap-4 p-2 rounded-md hover:bg-accent w-full text-left h-auto">
+       <div className="flex items-center gap-4 p-2 rounded-md hover:bg-accent w-full text-left h-auto">
         <div className={`w-2 h-2 rounded-full ${COLORS[index % COLORS.length]}`}></div>
-        <div className="flex-1">
-          <p className="font-medium">{category.name}</p>
-        </div>
+        <p className="font-medium flex-1">{category.name}</p>
         <div className="flex items-center gap-2">
-          <p className="font-semibold text-red-400">
-            -{category.total.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
-          </p>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <p className="font-semibold text-red-400">
+                {category.total.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
+            </p>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </div>
       </div>
     );
