@@ -13,7 +13,7 @@ import {
 import { TimeRangePicker, type TimeRange } from '@/components/ui/time-range-picker';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, ArrowDown, ArrowUp } from 'lucide-react';
+import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, ArrowDown, ArrowUp, CalendarIcon } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { wallets as allWallets, transactions as allTransactions, categories as allCategories } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -28,7 +28,6 @@ import {
   startOfWeek,
   endOfWeek,
   startOfDay,
-  endOfDay,
 } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { Progress } from '@/components/ui/progress';
@@ -171,7 +170,9 @@ export function ReportsPage() {
             netIncome,
             openingBalance,
             endingBalance,
-            transactionsInPeriod
+            transactionsInPeriod,
+            startDate,
+            endDate,
         };
     }, [selectedWallets, timeRange, customDateRange, dateOffset]);
 
@@ -230,14 +231,12 @@ export function ReportsPage() {
         <div>
             <p className="text-muted-foreground">Balance</p>
             <p className="text-2xl font-bold">{financialSummary.endingBalance.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
-        </div>
-         <div className="flex items-center gap-2">
-            <Popover>
+             <Popover>
                 <PopoverTrigger asChild>
                     <Button
                         variant="outline"
                         role="combobox"
-                        className="w-full md:w-[200px] justify-between"
+                        className="w-full md:w-[200px] justify-between mt-2"
                     >
                         <span>
                             {selectedWallets.length === allWallets.length
@@ -273,25 +272,33 @@ export function ReportsPage() {
                     </Command>
                 </PopoverContent>
             </Popover>
-         </div>
-      </div>
-       <div className="flex items-center justify-between">
-            <Button variant="ghost" size="icon" onClick={() => handleDateOffsetChange('prev')} disabled={timeRange === 'custom'}>
-                <ChevronLeft className="h-4 w-4" />
-            </Button>
+        </div>
+         <div className="flex items-center gap-2">
             <TimeRangePicker 
                 timeRange={timeRange}
                 customDateRange={customDateRange}
                 onTimeRangeChange={handleTimeRangeChange}
                 displayValue={dateRangeDisplay}
+                trigger={
+                    <Button variant="outline" size="icon">
+                        <CalendarIcon className="h-4 w-4" />
+                    </Button>
+                }
             />
-            <Button variant="ghost" size="icon" onClick={() => handleDateOffsetChange('next')} disabled={timeRange === 'custom'}>
-                <ChevronRight className="h-4 w-4" />
-            </Button>
-        </div>
-      
+         </div>
+      </div>
+       
        <Card>
         <CardContent className="p-4">
+            <div className="flex justify-between items-center text-sm mb-4">
+                 <Button variant="ghost" size="icon" onClick={() => handleDateOffsetChange('prev')} disabled={timeRange === 'custom'}>
+                    <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <p className="text-center font-semibold">{dateRangeDisplay}</p>
+                 <Button variant="ghost" size="icon" onClick={() => handleDateOffsetChange('next')} disabled={timeRange === 'custom'}>
+                    <ChevronRight className="h-4 w-4" />
+                </Button>
+            </div>
             <div className="flex justify-between text-sm">
                 <p className="text-muted-foreground">Opening balance</p>
                 <p>{financialSummary.openingBalance.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>

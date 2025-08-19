@@ -23,6 +23,7 @@ interface TimeRangePickerProps {
   onTimeRangeChange: (timeRange: TimeRange, customDateRange?: DateRange) => void;
   className?: string;
   displayValue: string;
+  trigger: React.ReactNode;
 }
 
 const timeRangeOptions: { label: string; value: TimeRange }[] = [
@@ -39,6 +40,7 @@ export function TimeRangePicker({
   onTimeRangeChange,
   className,
   displayValue,
+  trigger,
 }: TimeRangePickerProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isCustomDialogOpen, setIsCustomDialogOpen] = useState(false);
@@ -51,9 +53,7 @@ export function TimeRangePicker({
     <>
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetTrigger asChild>
-          <Button variant="ghost" className={cn('w-auto justify-center text-center font-normal', className)}>
-            <span>{displayValue}</span>
-          </Button>
+          {trigger}
         </SheetTrigger>
         <SheetContent side="bottom" className="sm:max-w-none w-full md:w-auto">
           <SheetHeader>
