@@ -11,7 +11,7 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import { ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 
 interface CategoriesDonutChartProps {
   transactions: Transaction[];
@@ -86,6 +86,16 @@ export function CategoriesDonutChart({
     );
   }
 
+  const chartConfig = Object.fromEntries(
+    chartData.map((item, index) => [
+        item.name,
+        {
+          label: item.name,
+          color: COLORS[index % COLORS.length],
+        },
+    ])
+  );
+
   return (
     <Card className={className}>
       <CardHeader>
@@ -93,7 +103,10 @@ export function CategoriesDonutChart({
         <CardDescription>Spending by parent category.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px] w-full relative">
+        <ChartContainer
+          config={chartConfig}
+          className="h-[300px] w-full relative"
+        >
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Tooltip
@@ -117,13 +130,13 @@ export function CategoriesDonutChart({
               </Pie>
             </PieChart>
           </ResponsiveContainer>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
+           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <p className="text-sm text-muted-foreground">Total Expenses</p>
             <p className="text-2xl font-bold">
               {totalExpenses.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
             </p>
           </div>
-        </div>
+        </ChartContainer>
       </CardContent>
     </Card>
   );
