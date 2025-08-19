@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { notFound, useRouter, useSearchParams } from 'next/navigation';
 import { transactions as allTransactions, categories as allCategories } from '@/lib/data';
 import { Button } from '@/components/ui/button';
@@ -14,14 +14,27 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { differenceInDays, parseISO } from 'date-fns';
+import { differenceInDays, parseISO, format } from 'date-fns';
 import { CategoriesDonutChart } from '@/components/charts/categories-donut-chart';
 import { CategorySpendingList } from '@/components/charts/category-spending-list';
-import type { Transaction } from '@/types';
+import type { Transaction, Category } from '@/types';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+
 
 export default function CategoryReportPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState('breakdown');
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
 
   const category = useMemo(() => 
     allCategories.find(c => c.id === params.id),
@@ -31,42 +44,61 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
   const from = searchParams.get('from');
   const to = searchParams.get('to');
 
-  const { transactions, totalExpenses, dailyAverage, subCategories } = useMemo(() => {
-    if (!category) return { transactions: [], totalExpenses: 0, dailyAverage: 0, subCategories: [] };
+  const { transactions, totalExpenses, dailyAverage, subCategories, filteredTransactionsForTable } = useMemo(() => {
+    if (!category) return { transactions: [], totalExpenses: 0, dailyAverage: 0, subCategories: [], filteredTransactionsForTable: [] };
 
     const startDate = from ? parseISO(from) : new Date(0);
     const endDate = to ? parseISO(to) : new Date();
 
     const childrenCategories = allCategories.filter(c => c.parentId === category.id);
-    const categoryNames = [category.name, ...childrenCategories.map(c => c.name)];
+    const descendantIds = new Set([category.id]);
+    const getDescendants = (catId: string) => {
+        const children = allCategories.filter(c => c.parentId === catId);
+        children.forEach(child => {
+            descendantIds.add(child.id);
+            getDescendants(child.id);
+        });
+    };
+    getDescendants(category.id);
+    const descendantCategoryNames = allCategories
+        .filter(c => descendantIds.has(c.id))
+        .map(c => c.name);
 
-    const filteredTransactions = allTransactions.filter(t => {
+    const allRelatedTransactions = allTransactions.filter(t => {
       const transactionDate = new Date(t.date);
-      return categoryNames.includes(t.category) &&
+      return descendantCategoryNames.includes(t.category) &&
              transactionDate >= startDate &&
              transactionDate <= endDate;
     });
+    
+    const tableTransactions = selectedSubCategory 
+        ? allRelatedTransactions.filter(t => t.category === selectedSubCategory)
+        : allRelatedTransactions;
 
-    const total = filteredTransactions.reduce((acc, t) => acc + t.amount, 0);
+    const total = allRelatedTransactions.reduce((acc, t) => acc + t.amount, 0);
 
     const days = differenceInDays(endDate, startDate) + 1;
     const average = days > 0 ? total / days : 0;
     
-    // For the charts, we only want to show the sub-categories, or the main category if it has no children
     const relevantCategories = childrenCategories.length > 0 ? childrenCategories : [category];
-    const relevantTransactions = childrenCategories.length > 0 
-        ? filteredTransactions.filter(t => t.category !== category.name)
-        : filteredTransactions;
+    const chartTransactions = childrenCategories.length > 0 
+        ? allRelatedTransactions.filter(t => t.category !== category.name)
+        : allRelatedTransactions;
 
 
     return { 
-        transactions: relevantTransactions, 
+        transactions: chartTransactions, 
         totalExpenses: total, 
         dailyAverage: average, 
-        subCategories: relevantCategories 
+        subCategories: relevantCategories,
+        filteredTransactionsForTable: tableTransactions,
     };
-  }, [category, from, to]);
+  }, [category, from, to, selectedSubCategory]);
 
+  const handleSubCategoryClick = (categoryName: string) => {
+    setSelectedSubCategory(categoryName);
+    setActiveTab('transactions');
+  }
 
   if (!category) {
     notFound();
@@ -74,16 +106,23 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={() => router.back()}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <div>
-            <h1 className="text-2xl font-bold">Category Report: {category.name}</h1>
-            <p className="text-muted-foreground">
-                Detailed view of your spending for this category.
-            </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" onClick={() => router.back()}>
+            <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div>
+                <h1 className="text-2xl font-bold">Category Report: {category.name}</h1>
+                <p className="text-muted-foreground">
+                    Detailed view of your spending for this category.
+                </p>
+            </div>
         </div>
+         {selectedSubCategory && (
+            <Button variant="outline" onClick={() => setSelectedSubCategory(null)}>
+                Show All Transactions
+            </Button>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -115,7 +154,7 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
         </Card>
       </div>
 
-       <Tabs defaultValue="breakdown">
+       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="breakdown">Breakdown</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
@@ -129,17 +168,53 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
                 <CategorySpendingList
                     transactions={transactions}
                     categories={subCategories}
+                    onCategoryClick={handleSubCategoryClick}
+                    isInteractive
                 />
              </div>
           </TabsContent>
           <TabsContent value="transactions">
             <Card>
                 <CardHeader>
-                <CardTitle>Transactions</CardTitle>
-                <CardDescription>A list of all transactions in this category for the period.</CardDescription>
+                    <CardTitle>
+                        Transactions {selectedSubCategory ? `in '${selectedSubCategory}'` : ''}
+                    </CardTitle>
+                    <CardDescription>
+                        A list of all transactions in this category for the period.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                <p className="text-muted-foreground">Transaction list will be implemented here.</p>
+                    <div className="border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead>Category</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredTransactionsForTable.map((transaction) => (
+                                    <TableRow key={transaction.id}>
+                                        <TableCell>{format(new Date(transaction.date), 'dd MMM yyyy')}</TableCell>
+                                        <TableCell className="font-medium">{transaction.description}</TableCell>
+                                        <TableCell>
+                                        <Badge variant="outline">{transaction.category}</Badge>
+                                        </TableCell>
+                                        <TableCell className={cn("text-right font-semibold", 'text-red-600')}>
+                                            -{transaction.amount.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                         {filteredTransactionsForTable.length === 0 && (
+                            <div className="text-center p-8 text-muted-foreground">
+                                No transactions found for this selection.
+                            </div>
+                        )}
+                    </div>
                 </CardContent>
             </Card>
           </TabsContent>
