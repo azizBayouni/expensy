@@ -13,7 +13,11 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { differenceInDays, parseISO } from 'date-fns';
+import { CategoriesDonutChart } from '@/components/charts/categories-donut-chart';
+import { CategorySpendingList } from '@/components/charts/category-spending-list';
+import type { Transaction } from '@/types';
 
 export default function CategoryReportPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -23,19 +27,22 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
     allCategories.find(c => c.id === params.id),
     [params.id]
   );
-
+  
   const from = searchParams.get('from');
   const to = searchParams.get('to');
 
-  const { totalExpenses, dailyAverage } = useMemo(() => {
-    if (!category) return { totalExpenses: 0, dailyAverage: 0 };
+  const { transactions, totalExpenses, dailyAverage, subCategories } = useMemo(() => {
+    if (!category) return { transactions: [], totalExpenses: 0, dailyAverage: 0, subCategories: [] };
 
     const startDate = from ? parseISO(from) : new Date(0);
     const endDate = to ? parseISO(to) : new Date();
 
+    const childrenCategories = allCategories.filter(c => c.parentId === category.id);
+    const categoryNames = [category.name, ...childrenCategories.map(c => c.name)];
+
     const filteredTransactions = allTransactions.filter(t => {
       const transactionDate = new Date(t.date);
-      return t.category === category.name &&
+      return categoryNames.includes(t.category) &&
              transactionDate >= startDate &&
              transactionDate <= endDate;
     });
@@ -44,8 +51,20 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
 
     const days = differenceInDays(endDate, startDate) + 1;
     const average = days > 0 ? total / days : 0;
+    
+    // For the charts, we only want to show the sub-categories, or the main category if it has no children
+    const relevantCategories = childrenCategories.length > 0 ? childrenCategories : [category];
+    const relevantTransactions = childrenCategories.length > 0 
+        ? filteredTransactions.filter(t => t.category !== category.name)
+        : filteredTransactions;
 
-    return { totalExpenses: total, dailyAverage: average };
+
+    return { 
+        transactions: relevantTransactions, 
+        totalExpenses: total, 
+        dailyAverage: average, 
+        subCategories: relevantCategories 
+    };
   }, [category, from, to]);
 
 
@@ -72,7 +91,7 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
           <CardHeader>
             <CardTitle>Total Spent</CardTitle>
             <CardDescription>
-                Total amount spent in the '{category.name}' category for the selected period.
+                Total amount spent in the '{category.name}' category and its sub-categories for the selected period.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -96,17 +115,35 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
         </Card>
       </div>
 
-      {/* Placeholder for transaction list or further charts */}
-       <Card>
-        <CardHeader>
-          <CardTitle>Transactions</CardTitle>
-          <CardDescription>A list of all transactions in this category for the period.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Transaction list will be implemented here.</p>
-        </CardContent>
-      </Card>
-
+       <Tabs defaultValue="breakdown">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="breakdown">Breakdown</TabsTrigger>
+            <TabsTrigger value="transactions">Transactions</TabsTrigger>
+          </TabsList>
+          <TabsContent value="breakdown">
+             <div className="grid gap-6 mt-6 md:grid-cols-2">
+                <CategoriesDonutChart 
+                    transactions={transactions} 
+                    categories={subCategories}
+                />
+                <CategorySpendingList
+                    transactions={transactions}
+                    categories={subCategories}
+                />
+             </div>
+          </TabsContent>
+          <TabsContent value="transactions">
+            <Card>
+                <CardHeader>
+                <CardTitle>Transactions</CardTitle>
+                <CardDescription>A list of all transactions in this category for the period.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                <p className="text-muted-foreground">Transaction list will be implemented here.</p>
+                </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
     </div>
   );
 }
