@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import type { Transaction, Category } from '@/types';
-import { allCategories } from '@/lib/data';
+import { categories as allCategories } from '@/lib/data';
 import {
   Card,
   CardContent,
