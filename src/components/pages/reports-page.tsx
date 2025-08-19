@@ -94,7 +94,7 @@ export function ReportsPage() {
             params.delete('to');
         }
 
-        if (dateOffset !== 0) {
+        if (dateOffset !== 0 && timeRange !== 'all') {
             params.set('offset', dateOffset.toString());
         } else {
             params.delete('offset');
@@ -104,11 +104,14 @@ export function ReportsPage() {
     }, [selectedWallets, timeRange, customDateRange, dateOffset, pathname, router, searchParams]);
     
     const financialSummary = useMemo(() => {
-        let startDate: Date;
-        let endDate: Date;
+        let startDate: Date | undefined;
+        let endDate: Date | undefined;
         
         const now = new Date();
-        if (timeRange === 'custom' && customDateRange?.from && customDateRange?.to) {
+        if (timeRange === 'all') {
+            startDate = undefined;
+            endDate = undefined;
+        } else if (timeRange === 'custom' && customDateRange?.from && customDateRange?.to) {
             startDate = startOfDay(customDateRange.from);
             endDate = endOfDay(customDateRange.to);
         } else {
@@ -142,10 +145,12 @@ export function ReportsPage() {
 
         const transactionsInPeriod = allTransactions.filter(t => {
             const transactionDate = new Date(t.date);
-            return selectedWalletNames.includes(t.wallet) && transactionDate >= startDate && transactionDate <= endDate;
+            const inDateRange = startDate && endDate ? (transactionDate >= startDate && transactionDate <= endDate) : true;
+            return selectedWalletNames.includes(t.wallet) && inDateRange;
         });
 
         const transactionsBeforePeriod = allTransactions.filter(t => {
+            if (!startDate) return false;
             const transactionDate = new Date(t.date);
             return selectedWalletNames.includes(t.wallet) && transactionDate < startDate;
         });
@@ -200,6 +205,9 @@ export function ReportsPage() {
     };
     
     const dateRangeDisplay = useMemo(() => {
+        if (timeRange === 'all') {
+            return 'All Time';
+        }
         if (timeRange === 'custom' && customDateRange?.from && customDateRange?.to) {
             return `${format(customDateRange.from, 'LLL d, y')} - ${format(customDateRange.to, 'LLL d, y')}`;
         }
@@ -292,22 +300,26 @@ export function ReportsPage() {
        <Card>
         <CardContent className="p-4">
             <div className="flex justify-between items-center text-sm mb-4">
-                 <Button variant="ghost" size="icon" onClick={() => handleDateOffsetChange('prev')} disabled={timeRange === 'custom'}>
+                 <Button variant="ghost" size="icon" onClick={() => handleDateOffsetChange('prev')} disabled={timeRange === 'custom' || timeRange === 'all'}>
                     <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <p className="text-center font-semibold">{dateRangeDisplay}</p>
-                 <Button variant="ghost" size="icon" onClick={() => handleDateOffsetChange('next')} disabled={timeRange === 'custom'}>
+                 <Button variant="ghost" size="icon" onClick={() => handleDateOffsetChange('next')} disabled={timeRange === 'custom' || timeRange === 'all'}>
                     <ChevronRight className="h-4 w-4" />
                 </Button>
             </div>
-            <div className="flex justify-between text-sm">
-                <p className="text-muted-foreground">Opening balance</p>
-                <p>{financialSummary.openingBalance.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
-            </div>
-            <div className="flex justify-between text-sm font-medium">
-                <p>Ending balance</p>
-                <p>{financialSummary.endingBalance.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
-            </div>
+            {timeRange !== 'all' && (
+              <>
+                <div className="flex justify-between text-sm">
+                    <p className="text-muted-foreground">Opening balance</p>
+                    <p>{financialSummary.openingBalance.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
+                </div>
+                <div className="flex justify-between text-sm font-medium">
+                    <p>Ending balance</p>
+                    <p>{financialSummary.endingBalance.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}</p>
+                </div>
+              </>
+            )}
         </CardContent>
       </Card>
       

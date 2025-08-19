@@ -15,7 +15,7 @@ import { DateRangePickerDialog } from './date-range-picker-dialog';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
-export type TimeRange = 'day' | 'week' | 'month' | 'year' | 'custom';
+export type TimeRange = 'day' | 'week' | 'month' | 'year' | 'all' | 'custom';
 
 interface TimeRangePickerProps {
   timeRange: TimeRange;
@@ -31,6 +31,7 @@ const timeRangeOptions: { label: string; value: TimeRange }[] = [
   { label: 'This Week', value: 'week' },
   { label: 'This Month', value: 'month' },
   { label: 'This Year', value: 'year' },
+  { label: 'All Time', value: 'all' },
   { label: 'Custom', value: 'custom' },
 ];
 
@@ -55,11 +56,11 @@ export function TimeRangePicker({
         <SheetTrigger asChild>
           {trigger}
         </SheetTrigger>
-        <SheetContent side="bottom" className="sm:max-w-none w-full md:w-auto">
+        <SheetContent side="bottom" className={cn("sm:max-w-none w-full md:w-auto", className)}>
           <SheetHeader>
             <SheetTitle>Select Time Range</SheetTitle>
           </SheetHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 py-4">
+          <div className="flex flex-col gap-2 py-4">
             {timeRangeOptions.map((option) => (
               <Button
                 key={option.value}
