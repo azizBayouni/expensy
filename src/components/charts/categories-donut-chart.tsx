@@ -28,9 +28,9 @@ const COLORS = [
 ];
 
 const renderCustomizedLabel = (props: any) => {
-  const { cx, cy, midAngle, innerRadius, outerRadius, percent, index, name } = props;
+  const { cx, cy, midAngle, innerRadius, outerRadius, percent, index, name, fill } = props;
   const RADIAN = Math.PI / 180;
-  const radius = innerRadius + (outerRadius - innerRadius) * 1.25;
+  const radius = innerRadius + (outerRadius - innerRadius) * 1.4;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
   const textAnchor = x > cx ? 'start' : 'end';
@@ -39,10 +39,10 @@ const renderCustomizedLabel = (props: any) => {
     <text
       x={x}
       y={y}
-      fill="hsl(var(--foreground))"
+      fill={fill}
       textAnchor={textAnchor}
       dominantBaseline="central"
-      className="text-xs"
+      className="text-xs font-semibold"
     >
       {`${name} (${(percent * 100).toFixed(0)}%)`}
     </text>
