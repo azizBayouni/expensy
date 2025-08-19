@@ -48,8 +48,6 @@ export function CategorySpendingList({
   onCategoryClick,
 }: CategorySpendingListProps) {
   const searchParams = useSearchParams();
-  const from = searchParams.get('from');
-  const to = searchParams.get('to');
 
   const sortedCategories = useMemo(() => {
     const expenseTransactions = transactions.filter(t => t.type === 'expense');
@@ -57,8 +55,11 @@ export function CategorySpendingList({
     
     const getParentCategory = (categoryId: string): Category | undefined => {
       let current = categoryMap.get(categoryId);
+      if (!current) return undefined;
       while (current?.parentId && categoryMap.has(current.parentId)) {
-        current = categoryMap.get(current.parentId);
+        const parent = categoryMap.get(current.parentId);
+        if (!parent) break;
+        current = parent;
       }
       return current;
     };
@@ -123,7 +124,7 @@ export function CategorySpendingList({
   }
 
   const renderItem = (category: any, index: number) => {
-    const linkHref = `/reports/category/${category.id}?from=${from || ''}&to=${to || ''}`;
+    const linkHref = `/reports/category/${category.id}?${searchParams.toString()}`;
 
     const content = (
        <div className="flex items-center justify-between gap-4 p-2 rounded-md hover:bg-accent w-full text-left h-auto">
