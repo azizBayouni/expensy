@@ -26,6 +26,7 @@ import {
   Wallet,
   Settings,
   Plane,
+  LineChart,
 } from 'lucide-react';
 import { Logo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -72,6 +73,11 @@ const navItems = [
     href: '/transactions',
     label: 'Transactions',
     icon: ArrowLeftRight,
+  },
+  {
+    href: '/reports',
+    label: 'Reports',
+    icon: LineChart,
   },
   {
     href: '/categories',
