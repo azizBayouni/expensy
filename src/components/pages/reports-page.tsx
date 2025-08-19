@@ -28,6 +28,7 @@ import {
   startOfWeek,
   endOfWeek,
   startOfDay,
+  endOfDay,
 } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { Progress } from '@/components/ui/progress';
