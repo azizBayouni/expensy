@@ -43,7 +43,7 @@ export function ReportsPage() {
     const searchParams = useSearchParams();
 
     const [selectedWallets, setSelectedWallets] = useState<string[]>([]);
-    const [timeRange, setTimeRange] = useState<TimeRange>('year');
+    const [timeRange, setTimeRange] = useState<TimeRange>('month');
     const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
     const [dateOffset, setDateOffset] = useState(0);
 
