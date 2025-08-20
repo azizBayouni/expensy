@@ -64,23 +64,22 @@ export function CategoriesDonutChart({
     const categoryIdMap = new Map(allCategories.map(c => [c.id, c]));
 
     const getDescendantIds = (categoryId: string): Set<string> => {
-        const ids = new Set<string>();
+        const ids = new Set<string>([categoryId]);
         const queue = [categoryId];
         while(queue.length > 0) {
             const currentId = queue.shift()!;
-            ids.add(currentId);
             const children = allCategories.filter(c => c.parentId === currentId);
-            children.forEach(child => queue.push(child.id));
+            children.forEach(child => {
+              ids.add(child.id);
+              queue.push(child.id);
+            });
         }
         return ids;
     };
     
     const spendingByCategory = new Map<string, number>();
-    
-    // We only want to display top-level categories
-    const topLevelCategories = categories.filter(c => !c.parentId);
 
-    for (const category of topLevelCategories) {
+    for (const category of categories) {
       const descendantIds = getDescendantIds(category.id);
       const descendantNames = Array.from(descendantIds)
           .map(id => categoryIdMap.get(id)?.name)

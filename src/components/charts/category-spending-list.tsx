@@ -60,12 +60,9 @@ export function CategorySpendingList({
         return ids;
     };
     
-    // We only want to display top-level categories
-    const topLevelCategories = categories.filter(c => !c.parentId);
-
     const spendingByCategory = new Map<string, number>();
 
-    for (const category of topLevelCategories) {
+    for (const category of categories) {
         const descendantIds = getDescendantIds(category.id);
         const descendantNames = Array.from(descendantIds)
             .map(id => categoryIdMap.get(id)?.name)
@@ -80,7 +77,7 @@ export function CategorySpendingList({
         }
     }
 
-    return topLevelCategories
+    return categories
         .map(category => ({
           ...category,
           total: spendingByCategory.get(category.id) || 0,
