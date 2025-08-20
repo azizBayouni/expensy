@@ -97,7 +97,7 @@ export default function CategoryReportPage() {
     return { 
         totalExpenses: total, 
         dailyAverage: average, 
-        subCategories: directChildren.length > 0 ? directChildren : [],
+        subCategories: directChildren.length > 0 ? directChildren : [category],
         filteredTransactions: allRelatedTransactions,
     };
   }, [category, from, to, transactions]);
@@ -151,7 +151,7 @@ export default function CategoryReportPage() {
     notFound();
   }
   
-  const breakdownCategories = subCategories.length > 0 ? subCategories : [category];
+  const breakdownCategories = subCategories;
 
   return (
     <div className="space-y-6">
