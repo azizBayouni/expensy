@@ -36,7 +36,7 @@ import { CategoriesDonutChart } from '@/components/charts/categories-donut-chart
 import { CategorySpendingList } from '@/components/charts/category-spending-list';
 
 
-export function ReportsPage() {
+export default function ReportsPage() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -116,10 +116,12 @@ export function ReportsPage() {
 
     // Effect to update URL when state changes
     useEffect(() => {
-        const params = new URLSearchParams();
+        const params = new URLSearchParams(searchParams.toString());
 
         if (selectedWallets.length > 0 && selectedWallets.length < allWallets.length) {
             params.set('wallets', selectedWallets.join(','));
+        } else {
+          params.delete('wallets');
         }
         
         params.set('timeRange', timeRange);
@@ -127,14 +129,19 @@ export function ReportsPage() {
         if (startDate && endDate && timeRange !== 'all') {
             params.set('from', startDate.toISOString());
             params.set('to', endDate.toISOString());
+        } else {
+            params.delete('from');
+            params.delete('to');
         }
 
         if (dateOffset !== 0 && timeRange !== 'all' && timeRange !== 'custom') {
             params.set('offset', dateOffset.toString());
+        } else {
+            params.delete('offset');
         }
 
         router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    }, [selectedWallets, timeRange, startDate, endDate, dateOffset, pathname, router]);
+    }, [selectedWallets, timeRange, startDate, endDate, dateOffset, pathname, router, searchParams]);
     
     const financialSummary = useMemo(() => {
         const selectedWalletNames = allWallets.filter(w => selectedWallets.includes(w.id)).map(w => w.name);
@@ -280,7 +287,7 @@ export function ReportsPage() {
                 onTimeRangeChange={handleTimeRangeChange}
                 displayValue={dateRangeDisplay}
                 trigger={
-                    <Button
+                   <Button
                       variant={'outline'}
                       className={cn(
                         'w-full justify-start text-left font-normal md:w-[240px]',
