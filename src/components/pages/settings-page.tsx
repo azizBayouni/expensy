@@ -392,11 +392,6 @@ export function SettingsPage() {
         updateDebts([]);
         toast({ title: "Success", description: "All transactions and debts have been deleted." });
     } else if (dialogType === 'categories') {
-        if (transactions.length > 0) {
-            toast({ variant: 'destructive', title: "Action Failed", description: "You must delete all transactions before deleting categories." });
-            resetDialog();
-            return;
-        }
         updateCategories([]);
         toast({ title: "Success", description: "All categories have been deleted." });
     }
@@ -668,5 +663,7 @@ export function SettingsPage() {
     </div>
   );
 }
+
+    
 
     
