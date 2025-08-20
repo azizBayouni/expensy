@@ -52,6 +52,8 @@ import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useTravelMode } from '@/hooks/use-travel-mode';
 
+const TRANSACTIONS_PER_PAGE = 30;
+
 export function TransactionsPage() {
   const [transactions, setTransactions] =
     React.useState<Transaction[]>(initialTransactions);
@@ -59,6 +61,7 @@ export function TransactionsPage() {
   const [categoryFilter, setCategoryFilter] = React.useState<string[]>([]);
   const [walletFilter, setWalletFilter] = React.useState('all');
   const [dateFilter, setDateFilter] = React.useState<DateRange | undefined>();
+  const [visibleCount, setVisibleCount] = React.useState(TRANSACTIONS_PER_PAGE);
 
   const [isSheetOpen, setSheetOpen] = React.useState(false);
   const [selectedTransaction, setSelectedTransaction] =
@@ -112,7 +115,7 @@ export function TransactionsPage() {
         t.id === selectedTransaction.id ? { ...t, ...data } : t
       );
     } else {
-      newTransactions = [...transactions, { ...data, id: `trx-${Date.now()}` }];
+      newTransactions = [{ ...data, id: `trx-${Date.now()}` }, ...transactions];
     }
     saveTransactions(newTransactions);
     setSheetOpen(false);
@@ -126,7 +129,7 @@ export function TransactionsPage() {
     );
   };
 
-  const filteredTransactions = transactions
+  const filteredTransactions = React.useMemo(() => transactions
     .filter((t) => {
       const searchTerm = search.toLowerCase();
       return (
@@ -144,7 +147,16 @@ export function TransactionsPage() {
       }
       return format(transactionDate, 'yyyy-MM-dd') === format(dateFilter.from, 'yyyy-MM-dd');
     })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [transactions, search, categoryFilter, walletFilter, dateFilter]
+  );
+  
+  const paginatedTransactions = filteredTransactions.slice(0, visibleCount);
+
+  const handleLoadMore = () => {
+    setVisibleCount(prevCount => prevCount + TRANSACTIONS_PER_PAGE);
+  };
+
 
   return (
     <div className="space-y-6">
@@ -279,7 +291,7 @@ export function TransactionsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredTransactions.map((transaction) => {
+            {paginatedTransactions.map((transaction) => {
               const event = events.find(e => e.id === transaction.event);
               const category = categories.find(c => c.name === transaction.category);
               const IconComponent = category ? getIconComponent(category.icon) : null;
@@ -305,7 +317,7 @@ export function TransactionsPage() {
                 </TableCell>
                 <TableCell>
                     <div className="flex items-center gap-2">
-                        {WalletIcon && <WalletIcon className="h-4 w-4 text-muted-foreground" />}
+                        {WalletIcon && <WalletIcon className="h-4 h-4 text-muted-foreground" />}
                         <span>{transaction.wallet}</span>
                     </div>
                 </TableCell>
@@ -348,7 +360,19 @@ export function TransactionsPage() {
             )})}
           </TableBody>
         </Table>
+        {filteredTransactions.length === 0 && (
+            <div className="text-center p-8 text-muted-foreground">
+                No transactions match your filters.
+            </div>
+        )}
       </div>
+      {visibleCount < filteredTransactions.length && (
+        <div className="text-center mt-4">
+          <Button onClick={handleLoadMore} variant="outline">
+            Load More
+          </Button>
+        </div>
+      )}
       <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent className="sm:max-w-[500px]">
           <SheetHeader>
@@ -372,5 +396,3 @@ export function TransactionsPage() {
     </div>
   );
 }
-
-    
