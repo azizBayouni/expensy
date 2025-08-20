@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -58,6 +59,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import Link from 'next/link';
 
 const eventSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -181,9 +183,10 @@ export function EventsPage() {
 
       <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {events.map((event) => (
-          <Card key={event.id} className="flex flex-col">
-            <CardHeader onClick={() => openEditDialog(event)} className="cursor-pointer">
-              <div className="flex items-center justify-between">
+          <Link href={`/events/${event.id}`} key={event.id}>
+          <Card className="flex flex-col h-full hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
                    <span className="text-4xl">{event.icon}</span>
                    <div>
@@ -193,15 +196,15 @@ export function EventsPage() {
                 </div>
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="w-8 h-8 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" className="w-8 h-8 flex-shrink-0" onClick={(e) => e.preventDefault()}>
                         <MoreHorizontal className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(event); }}>Edit</DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); e.preventDefault(); openEditDialog(event); }}>Edit</DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-red-500"
-                        onClick={(e) => { e.stopPropagation(); openDeleteAlert(event); }}
+                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); openDeleteAlert(event); }}
                       >
                         Delete
                       </DropdownMenuItem>
@@ -209,7 +212,7 @@ export function EventsPage() {
                   </DropdownMenu>
               </div>
             </CardHeader>
-            <CardContent className="flex-grow">
+            <CardContent className="flex-grow mt-auto">
               <div className="flex justify-between items-center">
                 <div className="text-sm text-muted-foreground">
                   Date: {new Date(event.date).toLocaleDateString()}
@@ -223,6 +226,7 @@ export function EventsPage() {
               </div>
             </CardContent>
           </Card>
+          </Link>
         ))}
       </div>
 
@@ -288,19 +292,34 @@ export function EventsPage() {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormLabel>Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Europe Trip 2024" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="flex-1 space-y-4">
+                    <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Name</FormLabel>
+                            <FormControl>
+                            <Input placeholder="e.g., Europe Trip 2024" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Description</FormLabel>
+                            <FormControl>
+                            <Input placeholder="A short description of the event" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                  </div>
               </div>
               <FormField
                 control={form.control}
