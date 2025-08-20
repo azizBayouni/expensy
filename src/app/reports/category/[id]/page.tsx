@@ -27,7 +27,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, getIconComponent } from '@/lib/utils';
 import {
   Sheet,
   SheetContent,
@@ -152,6 +152,7 @@ export default function CategoryReportPage() {
   }
   
   const breakdownCategories = subCategories.length > 0 ? subCategories : [];
+  const IconComponent = getIconComponent(category.icon);
 
   return (
     <div className="space-y-6">
@@ -160,7 +161,8 @@ export default function CategoryReportPage() {
             <Button variant="outline" size="icon" onClick={() => router.back()}>
             <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div>
+            <div className="flex items-center gap-3">
+                <IconComponent className="w-8 h-8" />
                 <h1 className="text-2xl font-bold">{category.name}</h1>
             </div>
         </div>
@@ -243,18 +245,25 @@ export default function CategoryReportPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {tableTransactions.map((transaction) => (
+                                {tableTransactions.map((transaction) => {
+                                  const transactionCategory = allCategories.find(c => c.name === transaction.category);
+                                  const TransactionIcon = transactionCategory ? getIconComponent(transactionCategory.icon) : null;
+                                  return (
                                     <TableRow key={transaction.id} onClick={() => handleEditTransaction(transaction)} className="cursor-pointer">
                                         <TableCell>{format(parseISO(transaction.date), 'dd MMM yyyy')}</TableCell>
                                         <TableCell className="font-medium">{transaction.description}</TableCell>
                                         <TableCell>
-                                        <Badge variant="outline">{transaction.category}</Badge>
+                                          <Badge variant="outline" className="flex items-center gap-2">
+                                            {TransactionIcon && <TransactionIcon className="h-4 w-4" />}
+                                            <span>{transaction.category}</span>
+                                          </Badge>
                                         </TableCell>
                                         <TableCell className={cn("text-right font-semibold", 'text-red-500')}>
                                             -{transaction.amount.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
                                         </TableCell>
                                     </TableRow>
-                                ))}
+                                  );
+                                })}
                             </TableBody>
                         </Table>
                          {tableTransactions.length === 0 && (

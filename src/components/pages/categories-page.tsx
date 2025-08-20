@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -77,6 +78,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import * as LucideIcons from 'lucide-react';
 import React from 'react';
+import { getIconComponent } from '@/lib/utils';
 
 const categorySchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -134,16 +136,6 @@ const expenseEmojis: { emoji: string; name: string }[] = [
 
 function isLucideIcon(icon: string | LucideIcon): icon is LucideIcon {
   return typeof icon === 'function';
-}
-
-function getIconComponent(iconName: string | undefined): LucideIcon {
-  if (!iconName) return Smile;
-  if (expenseEmojis.some(e => e.emoji === iconName)) return Smile; 
-  const Icon = LucideIcons[iconName as keyof typeof LucideIcons] || Smile;
-  if (typeof Icon === 'function') {
-      return Icon;
-  }
-  return Smile;
 }
 
 function buildHierarchy(categories: Category[]): (Category & { children: Category[] })[] {
@@ -380,20 +372,7 @@ export function CategoriesPage() {
   
   const CategoryRow = ({ category, level = 0 }: { category: DisplayCategory, level: number }) => {
     const parentName = category.parentId ? categories.find(c => c.id === category.parentId)?.name : '—';
-    const icon = category.icon;
-    let IconComponent: React.ReactNode;
-    
-    const isEmoji = typeof icon === 'string' && expenseEmojis.some(e => e.emoji === icon);
-
-    if (isEmoji) {
-        IconComponent = <span className="text-2xl">{icon}</span>
-    } else if (isLucideIcon(icon)) {
-        const LucideComp = icon;
-        IconComponent = <LucideComp className="w-5 h-5 text-muted-foreground" />
-    } else {
-        const LucideComp = getIconComponent(icon as string);
-        IconComponent = <LucideComp className="w-5 h-5 text-muted-foreground" />
-    }
+    const IconComponent = getIconComponent(category.icon);
     
     return (
       <>
@@ -403,7 +382,7 @@ export function CategoriesPage() {
         >
           <TableCell style={{ paddingLeft: `${1 + level * 2}rem` }}>
             <div className="flex items-center gap-3">
-              {IconComponent}
+              <IconComponent className="w-5 h-5 text-muted-foreground" />
               <span className="font-medium">{category.name}</span>
             </div>
           </TableCell>

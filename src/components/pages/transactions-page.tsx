@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from 'react';
@@ -36,7 +37,7 @@ import {
 import { TransactionForm } from '@/components/transaction-form';
 import { transactions as initialTransactions, categories, wallets, updateTransactions, events as eventData } from '@/lib/data';
 import type { Transaction } from '@/types';
-import { cn } from '@/lib/utils';
+import { cn, getIconComponent } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -274,6 +275,9 @@ export function TransactionsPage() {
           <TableBody>
             {filteredTransactions.map((transaction) => {
               const event = eventData.find(e => e.id === transaction.event);
+              const category = categories.find(c => c.name === transaction.category);
+              const IconComponent = category ? getIconComponent(category.icon) : null;
+
               return (
               <TableRow key={transaction.id} onClick={() => handleEditTransaction(transaction)} className="cursor-pointer">
                 <TableCell>{format(new Date(transaction.date), 'dd MMM yyyy')}</TableCell>
@@ -286,7 +290,10 @@ export function TransactionsPage() {
                   )}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{transaction.category}</Badge>
+                  <Badge variant="outline" className="flex items-center gap-2">
+                    {IconComponent && <IconComponent className="h-4 w-4" />}
+                    <span>{transaction.category}</span>
+                  </Badge>
                 </TableCell>
                 <TableCell>{transaction.wallet}</TableCell>
                 <TableCell>{event?.name || '—'}</TableCell>

@@ -15,7 +15,7 @@ import Link from 'next/link';
 import { Button } from '../ui/button';
 import { useSearchParams } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, getIconComponent } from '@/lib/utils';
 
 interface CategorySpendingListProps {
   transactions: Transaction[];
@@ -103,11 +103,13 @@ export function CategorySpendingList({
 
   const renderItem = (category: any, index: number) => {
     const linkHref = `/reports/category/${category.id}?${searchParams.toString()}`;
+    const IconComponent = getIconComponent(category.icon);
 
     const content = (
        <div className="flex items-center justify-between gap-4 p-2 rounded-md hover:bg-accent w-full text-left h-auto">
           <div className="flex items-center gap-4 flex-1">
             <div className={`w-2 h-2 rounded-full ${COLORS[index % COLORS.length]}`}></div>
+            <IconComponent className="w-5 h-5 text-muted-foreground" />
             <p className="font-medium flex-1 truncate">{category.name}</p>
           </div>
           <div className="flex items-center gap-2">
