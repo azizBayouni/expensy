@@ -114,12 +114,24 @@ export function CategorySpendingList({
               <p className={cn("font-semibold text-right", isInteractive && "text-red-500")}>
                   {category.total.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
               </p>
+              {!isInteractive && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
               {isInteractive && <ChevronRight className="h-4 w-4 text-red-500" />}
           </div>
       </div>
     );
 
     if (isInteractive) {
+      const hasChildren = allCategories.some(c => c.parentId === category.id);
+      if (hasChildren) {
+        // This is a sub-category on the detail page, which can be drilled down further.
+        return (
+          <Link href={linkHref} key={category.id} className="block">
+            {content}
+          </Link>
+        )
+      }
+      // This is a sub-category with no more children, or a category on the main page with no drilldown behavior defined here.
+      // It becomes a button to filter transactions.
       return (
         <Button
           key={category.id}
@@ -132,6 +144,7 @@ export function CategorySpendingList({
       );
     }
 
+    // Default behavior for main reports page: always a link.
     return (
       <Link href={linkHref} key={category.id} className="block">
         {content}

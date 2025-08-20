@@ -97,7 +97,7 @@ export default function CategoryReportPage() {
     return { 
         totalExpenses: total, 
         dailyAverage: average, 
-        subCategories: directChildren.length > 0 ? directChildren : [category],
+        subCategories: directChildren,
         filteredTransactions: allRelatedTransactions,
     };
   }, [category, from, to, transactions]);
@@ -151,7 +151,7 @@ export default function CategoryReportPage() {
     notFound();
   }
   
-  const breakdownCategories = subCategories;
+  const breakdownCategories = subCategories.length > 0 ? subCategories : [];
 
   return (
     <div className="space-y-6">
@@ -200,6 +200,7 @@ export default function CategoryReportPage() {
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
           </TabsList>
           <TabsContent value="breakdown">
+            {breakdownCategories.length > 0 ? (
              <div className="grid gap-6 mt-6 md:grid-cols-2">
                 <CategoriesDonutChart 
                     transactions={filteredTransactions} 
@@ -212,6 +213,13 @@ export default function CategoryReportPage() {
                     isInteractive
                 />
              </div>
+            ) : (
+                <Card className="mt-6">
+                    <CardContent className="pt-6">
+                        <p className="text-center text-muted-foreground">This category has no sub-categories to break down.</p>
+                    </CardContent>
+                </Card>
+            )}
           </TabsContent>
           <TabsContent value="transactions">
             <Card>

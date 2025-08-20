@@ -221,6 +221,7 @@ export function ReportsPage() {
     }, [timeRange, customDateRange, startDate, endDate, dateOffset]);
     
     const expensePercentage = financialSummary.totalIncome > 0 ? (financialSummary.totalExpense / financialSummary.totalIncome) * 100 : 0;
+    const topLevelCategories = allCategories.filter(c => !c.parentId && c.type === 'expense');
 
 
   return (
@@ -343,11 +344,11 @@ export function ReportsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <CategoriesDonutChart 
             transactions={financialSummary.transactionsInPeriod} 
-            categories={allCategories}
+            categories={topLevelCategories}
         />
         <CategorySpendingList 
             transactions={financialSummary.transactionsInPeriod} 
-            categories={allCategories}
+            categories={topLevelCategories}
         />
       </div>
     </div>
