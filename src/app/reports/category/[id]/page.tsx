@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useMemo, useState } from 'react';
-import { notFound, useRouter, useSearchParams, useParams } from 'next/navigation';
-import { transactions as allTransactions, categories as allCategories, updateTransactions } from '@/lib/data';
+import { useMemo, useState, useEffect } from 'react';
+import { notFound, useRouter, useSearchParams, useParams, usePathname } from 'next/navigation';
+import { transactions as allTransactions, categories as allCategories, updateTransactions, wallets as allWallets } from '@/lib/data';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, ChevronsUpDown, Check, CalendarIcon } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -14,7 +14,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { differenceInDays, parseISO, format } from 'date-fns';
+import { differenceInDays, parseISO, format, startOfDay, endOfDay, add, sub, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { CategoriesDonutChart } from '@/components/charts/categories-donut-chart';
 import { CategorySpendingList } from '@/components/charts/category-spending-list';
 import type { Transaction, Category } from '@/types';
@@ -36,34 +36,132 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { TransactionForm } from '@/components/transaction-form';
-
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { TimeRangePicker, type TimeRange } from '@/components/ui/time-range-picker';
+import { DateRange } from 'react-day-picker';
 
 export default function CategoryReportPage() {
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+  
   const [activeTab, setActiveTab] = useState('breakdown');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>(allTransactions);
   const [isSheetOpen, setSheetOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
+  const [selectedWallets, setSelectedWallets] = useState<string[]>([]);
+  const [timeRange, setTimeRange] = useState<TimeRange>('month');
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
+  const [dateOffset, setDateOffset] = useState(0);
+
+  // Effect to set state from URL search params on initial load
+  useEffect(() => {
+    const wallets = searchParams.get('wallets');
+    const range = searchParams.get('timeRange') as TimeRange;
+    const from = searchParams.get('from');
+    const to = searchParams.get('to');
+    const offset = searchParams.get('offset');
+
+    if (wallets) {
+      setSelectedWallets(wallets.split(','));
+    } else {
+      setSelectedWallets(allWallets.map(w => w.id));
+    }
+
+    if (range) {
+      setTimeRange(range);
+    }
+
+    if (range === 'custom' && from && to) {
+      setCustomDateRange({ from: new Date(from), to: new Date(to) });
+    }
+    
+    if (offset) {
+      setDateOffset(parseInt(offset, 10));
+    }
+  }, [searchParams]);
+
   const category = useMemo(() => 
     allCategories.find(c => c.id === id),
     [id]
   );
   
-  const { from, to } = useMemo(() => ({
-    from: searchParams.get('from'),
-    to: searchParams.get('to'),
-  }), [searchParams]);
+  const { startDate, endDate } = useMemo(() => {
+      let start: Date, end: Date;
+      const now = new Date();
+
+      if (timeRange === 'custom' && customDateRange?.from && customDateRange?.to) {
+          start = startOfDay(customDateRange.from);
+          end = endOfDay(customDateRange.to);
+      } else {
+            const unit = timeRange === 'day' ? 'days' : timeRange === 'week' ? 'weeks' : timeRange === 'month' ? 'months' : 'years';
+          const dateWithOffset = dateOffset !== 0 ? (dateOffset > 0 ? add(now, { [unit]: dateOffset }) : sub(now, { [unit]: Math.abs(dateOffset) })) : now;
+          
+          switch (timeRange) {
+              case 'day':
+                  start = startOfDay(dateWithOffset);
+                  end = endOfDay(dateWithOffset);
+                  break;
+              case 'week':
+                  start = startOfWeek(dateWithOffset);
+                  end = endOfWeek(dateWithOffset);
+                  break;
+              case 'month':
+                  start = startOfMonth(dateWithOffset);
+                  end = endOfMonth(dateWithOffset);
+                  break;
+              case 'year':
+                  start = startOfYear(dateWithOffset);
+                  end = endOfYear(dateWithOffset);
+                  break;
+              case 'all':
+              default:
+                  start = new Date(0);
+                  end = new Date();
+                  break;
+          }
+      }
+      return { startDate: start, endDate: end };
+  }, [timeRange, customDateRange, dateOffset]);
+
+  // Effect to update URL when state changes
+  useEffect(() => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      if (selectedWallets.length > 0 && selectedWallets.length < allWallets.length) {
+          params.set('wallets', selectedWallets.join(','));
+      } else {
+        params.delete('wallets');
+      }
+      
+      params.set('timeRange', timeRange);
+      
+      if (startDate && endDate && timeRange !== 'all') {
+          params.set('from', startDate.toISOString());
+          params.set('to', endDate.toISOString());
+      } else {
+          params.delete('from');
+          params.delete('to');
+      }
+
+      if (dateOffset !== 0 && timeRange !== 'all' && timeRange !== 'custom') {
+          params.set('offset', dateOffset.toString());
+      } else {
+          params.delete('offset');
+      }
+
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [selectedWallets, timeRange, startDate, endDate, dateOffset, pathname, router, searchParams]);
 
   const { totalExpenses, dailyAverage, subCategories, filteredTransactions } = useMemo(() => {
     if (!category) return { totalExpenses: 0, dailyAverage: 0, subCategories: [], filteredTransactions: [] };
 
-    const startDate = from ? parseISO(from) : new Date(0);
-    const endDate = to ? parseISO(to) : new Date();
+    const selectedWalletNames = allWallets.filter(w => selectedWallets.includes(w.id)).map(w => w.name);
 
     const descendantIds = new Set<string>();
     const getDescendants = (catId: string) => {
@@ -81,7 +179,8 @@ export default function CategoryReportPage() {
       const transactionDate = parseISO(t.date);
       const categoryName = t.category;
       
-      return descendantCategoryNames.includes(categoryName) &&
+      return selectedWalletNames.includes(t.wallet) &&
+             descendantCategoryNames.includes(categoryName) &&
              transactionDate >= startDate &&
              transactionDate <= endDate &&
              t.type === 'expense';
@@ -100,7 +199,7 @@ export default function CategoryReportPage() {
         subCategories: directChildren,
         filteredTransactions: allRelatedTransactions,
     };
-  }, [category, from, to, transactions]);
+  }, [category, startDate, endDate, transactions, selectedWallets]);
 
   const tableTransactions = useMemo(() => {
       if (selectedSubCategory) {
@@ -147,6 +246,48 @@ export default function CategoryReportPage() {
     setActiveTab('transactions');
   }
 
+  const handleWalletToggle = (walletId: string) => {
+      setSelectedWallets(prev => 
+          prev.includes(walletId)
+              ? prev.filter(id => id !== walletId)
+              : [...prev, walletId]
+      );
+  };
+  
+  const handleTimeRangeChange = (newTimeRange: TimeRange, dateRange?: DateRange) => {
+      setTimeRange(newTimeRange);
+      setDateOffset(0);
+      if (newTimeRange === 'custom' && dateRange) {
+          setCustomDateRange(dateRange);
+      } else {
+          setCustomDateRange(undefined);
+      }
+  };
+
+  const dateRangeDisplay = useMemo(() => {
+      if (timeRange === 'all') return 'All Time';
+      if (timeRange === 'custom') {
+          if (customDateRange?.from && customDateRange.to) {
+              return `${format(customDateRange.from, 'LLL d, y')} - ${format(customDateRange.to, 'LLL d, y')}`;
+          }
+          return 'Custom Range';
+      }
+      if (startDate && endDate) {
+            switch (timeRange) {
+              case 'day': return format(startDate, 'MMM d, yyyy');
+              case 'week': return `Week of ${format(startOfWeek(startDate), 'MMM d')} - ${format(endOfWeek(startDate), 'MMM d, yyyy')}`;
+              case 'month': return format(startDate, 'MMMM yyyy');
+              case 'year': 
+                  if (dateOffset === 0) return 'This Year';
+                  if (dateOffset === -1) return 'Last Year';
+                  return format(startDate, 'yyyy');
+              default: return 'Select Range';
+          }
+      }
+      return 'Loading...';
+  }, [timeRange, customDateRange, startDate, endDate, dateOffset]);
+
+
   if (!category) {
     notFound();
   }
@@ -171,6 +312,70 @@ export default function CategoryReportPage() {
                 Show All Transactions
             </Button>
         )}
+      </div>
+
+       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full md:w-[200px] justify-between mt-2"
+                >
+                    <span>
+                        {selectedWallets.length === allWallets.length
+                            ? "All Wallets"
+                            : `${selectedWallets.length} wallets selected`}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full md:w-[200px] p-0">
+                <Command>
+                    <CommandInput placeholder="Search wallets..." />
+                    <CommandList>
+                        <CommandEmpty>No wallets found.</CommandEmpty>
+                        <CommandGroup>
+                            {allWallets.map((wallet) => (
+                                <CommandItem
+                                    key={wallet.id}
+                                    onSelect={() => handleWalletToggle(wallet.id)}
+                                    className="cursor-pointer"
+                                >
+                                    <Check
+                                        className={cn(
+                                            "mr-2 h-4 w-4",
+                                            selectedWallets.includes(wallet.id) ? "opacity-100" : "opacity-0"
+                                        )}
+                                    />
+                                    <span>{wallet.name}</span>
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+         <div className="flex items-center gap-2">
+            <TimeRangePicker 
+                timeRange={timeRange}
+                customDateRange={customDateRange}
+                onTimeRangeChange={handleTimeRangeChange}
+                displayValue={dateRangeDisplay}
+                trigger={
+                   <Button
+                      variant={'outline'}
+                      className={cn(
+                        'w-full justify-start text-left font-normal md:w-[240px]',
+                        !timeRange && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRangeDisplay}
+                    </Button>
+                }
+            />
+         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
