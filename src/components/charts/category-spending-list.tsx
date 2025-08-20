@@ -116,8 +116,7 @@ export function CategorySpendingList({
               <p className={cn("font-semibold text-right", isInteractive && "text-red-500")}>
                   {category.total.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
               </p>
-              {!isInteractive && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-              {isInteractive && <ChevronRight className="h-4 w-4 text-red-500" />}
+              {<ChevronRight className="h-4 w-4 text-muted-foreground" />}
           </div>
       </div>
     );
@@ -145,12 +144,15 @@ export function CategorySpendingList({
         </Button>
       );
     }
+    
+    // Default behavior for non-interactive lists.
+    const Wrapper = isInteractive ? 'button' : 'div';
+    const wrapperProps = isInteractive ? { onClick: () => onCategoryClick?.(category.name) } : {};
 
-    // Default behavior for main reports page: always a link.
     return (
-      <Link href={linkHref} key={category.id} className="block">
+      <div key={category.id} className="block">
         {content}
-      </Link>
+      </div>
     );
   };
 
