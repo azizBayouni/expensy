@@ -33,6 +33,9 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { TransactionForm } from '@/components/transaction-form';
+import { CategoriesDonutChart } from '@/components/charts/categories-donut-chart';
+import { CategorySpendingList } from '@/components/charts/category-spending-list';
+
 
 export default function EventReportPage() {
   const params = useParams();
@@ -69,6 +72,10 @@ export default function EventReportPage() {
       endDate: end,
     };
   }, [event, transactions]);
+  
+  const topLevelCategories = useMemo(() => {
+      return allCategories.filter(c => !c.parentId && c.type === 'expense');
+  }, []);
 
   const handleEditTransaction = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
@@ -130,6 +137,17 @@ export default function EventReportPage() {
           </CardContent>
         </Card>
       </div>
+
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CategoriesDonutChart 
+              transactions={filteredTransactions} 
+              categories={topLevelCategories}
+          />
+          <CategorySpendingList 
+              transactions={filteredTransactions} 
+              categories={topLevelCategories}
+          />
+        </div>
 
       <Card>
         <CardHeader>
