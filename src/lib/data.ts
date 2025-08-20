@@ -120,35 +120,35 @@ export function updateTransactions(newTransactions: Transaction[]) {
 
 export let categories: Category[] = [
   // Income
-  { id: 'cat-inc-1', name: 'Salary', type: 'income', icon: Briefcase, parentId: null },
-  { id: 'cat-inc-2', name: 'Freelance', type: 'income', icon: HandCoins, parentId: null },
-  { id: 'cat-inc-3', name: 'Investments', type: 'income', icon: Landmark, parentId: null },
-  { id: 'cat-inc-4', name: 'Gifts', type: 'income', icon: Gift, parentId: null },
-  { id: 'cat-inc-5', name: 'Other', type: 'income', icon: CircleDollarSign, parentId: null },
+  { id: 'cat-inc-1', name: 'Salary', type: 'income', icon: "Briefcase", parentId: null },
+  { id: 'cat-inc-2', name: 'Freelance', type: 'income', icon: "HandCoins", parentId: null },
+  { id: 'cat-inc-3', name: 'Investments', type: 'income', icon: "Landmark", parentId: null },
+  { id: 'cat-inc-4', name: 'Gifts', type: 'income', icon: "Gift", parentId: null },
+  { id: 'cat-inc-5', name: 'Other', type: 'income', icon: "CircleDollarSign", parentId: null },
 
   // Expense
-  { id: 'cat-exp-1', name: 'Food & Drink', type: 'expense', icon: Pizza, parentId: null },
-  { id: 'cat-exp-2', name: 'Groceries', type: 'expense', icon: ShoppingBag, parentId: 'cat-exp-1' },
-  { id: 'cat-exp-3', name: 'Dining Out', type: 'expense', icon: Ticket, parentId: 'cat-exp-1' },
-  { id: 'cat-exp-4', name: 'Housing', type: 'expense', icon: Home, parentId: null },
-  { id: 'cat-exp-5', name: 'Rent', type: 'expense', icon: Receipt, parentId: 'cat-exp-4' },
-  { id: 'cat-exp-6', name: 'Utilities', type: 'expense', icon: Receipt, parentId: 'cat-exp-4' },
-  { id: 'cat-exp-7', name: 'Transportation', type: 'expense', icon: Car, parentId: null },
-  { id: 'cat-exp-8', name: 'Gas', type: 'expense', icon: Car, parentId: 'cat-exp-7' },
-  { id: 'cat-exp-9', name: 'Public Transit', type: 'expense', icon: Bus, parentId: 'cat-exp-7' },
-  { id: 'cat-exp-10', name: 'Train Ticket', type: 'expense', icon: Train, parentId: 'cat-exp-9' },
-  { id: 'cat-exp-11', name: 'Shopping', type: 'expense', icon: ShoppingBag, parentId: null },
-  { id: 'cat-exp-12', name: 'Clothing', type: 'expense', icon: Shirt, parentId: 'cat-exp-11' },
-  { id: 'cat-exp-13', name: 'Health', type: 'expense', icon: HeartPulse, parentId: null },
-  { id: 'cat-exp-14', name: 'Fitness', type: 'expense', icon: Dumbbell, parentId: 'cat-exp-13' },
-  { id: 'cat-exp-15', name: 'Education', type: 'expense', icon: GraduationCap, parentId: null },
-  { id: 'cat-exp-16', name: 'Travel', type: 'expense', icon: Plane, parentId: null },
-  { id: 'cat-exp-17', name: 'Pets', type: 'expense', icon: Cat, parentId: null },
-  { id: 'cat-exp-18', name: 'Movies', type: 'expense', icon: Ticket, parentId: null },
+  { id: 'cat-exp-1', name: 'Food & Drink', type: 'expense', icon: "Pizza", parentId: null },
+  { id: 'cat-exp-2', name: 'Groceries', type: 'expense', icon: "ShoppingBag", parentId: 'cat-exp-1' },
+  { id: 'cat-exp-3', name: 'Dining Out', type: 'expense', icon: "Ticket", parentId: 'cat-exp-1' },
+  { id: 'cat-exp-4', name: 'Housing', type: 'expense', icon: "Home", parentId: null },
+  { id: 'cat-exp-5', name: 'Rent', type: 'expense', icon: "Receipt", parentId: 'cat-exp-4' },
+  { id: 'cat-exp-6', name: 'Utilities', type: 'expense', icon: "Receipt", parentId: 'cat-exp-4' },
+  { id: 'cat-exp-7', name: 'Transportation', type: 'expense', icon: "Car", parentId: null },
+  { id: 'cat-exp-8', name: 'Gas', type: 'expense', icon: "Car", parentId: 'cat-exp-7' },
+  { id: 'cat-exp-9', name: 'Public Transit', type: 'expense', icon: "Bus", parentId: 'cat-exp-7' },
+  { id: 'cat-exp-10', name: 'Train Ticket', type: 'expense', icon: "Train", parentId: 'cat-exp-9' },
+  { id: 'cat-exp-11', name: 'Shopping', type: 'expense', icon: "ShoppingBag", parentId: null },
+  { id: 'cat-exp-12', name: 'Clothing', type: 'expense', icon: "Shirt", parentId: 'cat-exp-11' },
+  { id: 'cat-exp-13', name: 'Health', type: 'expense', icon: "HeartPulse", parentId: null },
+  { id: 'cat-exp-14', name: 'Fitness', type: 'expense', icon: "Dumbbell", parentId: 'cat-exp-13' },
+  { id: 'cat-exp-15', name: 'Education', type: 'expense', icon: "GraduationCap", parentId: null },
+  { id: 'cat-exp-16', name: 'Travel', type: 'expense', icon: "Plane", parentId: null },
+  { id: 'cat-exp-17', name: 'Pets', type: 'expense', icon: "Cat", parentId: null },
+  { id: 'cat-exp-18', name: 'Movies', type: 'expense', icon: "Ticket", parentId: null },
 ];
 
 export function updateCategories(newCategories: Category[]) {
-  categories = newCategories;
+  categories = newCategories.map(c => ({...c, icon: typeof c.icon === 'function' ? (c.icon as any).displayName : c.icon }));
 }
 
 export let debts: Debt[] = [
@@ -277,5 +277,3 @@ export function updateWallets(newWallets: Wallet[]) {
 export const top100Currencies = [
   'SAR', 'USD', 'EUR', 'JPY', 'GBP', 'AUD', 'CAD', 'CHF', 'CNY', 'HKD', 'NZD', 'SEK', 'KRW', 'SGD', 'NOK', 'MXN', 'INR', 'RUB', 'ZAR', 'TRY', 'BRL', 'TWD', 'DKK', 'PLN', 'THB', 'IDR', 'HUF', 'CZK', 'ILS', 'CLP', 'PHP', 'AED', 'COP', 'MYR', 'RON', 'UAH', 'VND', 'ARS', 'NGN', 'EGP', 'IQD', 'DZD', 'MAD', 'KZT', 'QAR', 'KWD', 'OMR', 'BHD', 'JOD', 'LBP', 'SYP', 'YER', 'IRR', 'PKR', 'BDT', 'LKR', 'NPR', 'AFN', 'MMK', 'KHR', 'LAK', 'MNT', 'UZS', 'TJS', 'KGS', 'TMT', 'GEL', 'AZN', 'AMD', 'BYN', 'MDL', 'RSD', 'BAM', 'MKD', 'ALL', 'ISK', 'GHS', 'KES', 'UGX', 'TZS', 'ZMW', 'ZWL', 'GMD', 'SLL', 'LRD', 'CVE', 'GNF', 'XOF', 'XAF', 'CDF', 'BIF', 'RWF', 'SOS', 'SDG', 'LYD', 'TND'
 ];
-
-    

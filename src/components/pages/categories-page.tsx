@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -17,7 +17,7 @@ import {
   type LucideIcon,
   Search,
 } from 'lucide-react';
-import { categories as initialCategories, transactions } from '@/lib/data';
+import { categories as initialCategories, transactions, updateCategories } from '@/lib/data';
 import type { Category } from '@/types';
 import {
   DropdownMenu,
@@ -168,13 +168,31 @@ type DisplayCategory = Category & {
 };
 
 export function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [emojiSearch, setEmojiSearch] = useState('');
   const { toast } = useToast();
+
+  useEffect(() => {
+    const storedCategories = localStorage.getItem('categories');
+    if (storedCategories) {
+      const parsedCategories = JSON.parse(storedCategories);
+      setCategories(parsedCategories);
+      updateCategories(parsedCategories);
+    } else {
+      setCategories(initialCategories);
+      updateCategories(initialCategories);
+    }
+  }, []);
+
+  const saveCategories = (newCategories: Category[]) => {
+    setCategories(newCategories);
+    updateCategories(newCategories);
+    localStorage.setItem('categories', JSON.stringify(newCategories));
+  };
 
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
@@ -277,23 +295,22 @@ export function CategoriesPage() {
     }
     
     const isEmoji = expenseEmojis.some(e => e.emoji === data.icon);
-    const iconValue = isEmoji ? data.icon : getIconComponent(data.icon);
     
     const categoryData = {
         name: data.name,
         type: data.type,
-        icon: iconValue,
+        icon: data.icon,
         parentId: data.parentId || null,
     };
     
     if (selectedCategory) {
         const updatedCategory = { ...selectedCategory, ...categoryData };
         if (typeof categoryData.icon === 'string' && !isEmoji) {
-            updatedCategory.icon = getIconComponent(categoryData.icon as string);
+            updatedCategory.icon = data.icon as string;
         } else {
             updatedCategory.icon = data.icon;
         }
-        setCategories(
+        saveCategories(
             categories.map((c) => (c.id === selectedCategory.id ? updatedCategory : c))
         );
         toast({ title: 'Success', description: 'Category updated successfully.' });
@@ -303,11 +320,11 @@ export function CategoriesPage() {
             ...categoryData,
         };
         if (typeof newCategory.icon === 'string' && !isEmoji) {
-            newCategory.icon = getIconComponent(newCategory.icon as string);
+            newCategory.icon = newCategory.icon as string;
         } else {
             newCategory.icon = data.icon;
         }
-        setCategories([...categories, newCategory]);
+        saveCategories([...categories, newCategory]);
         toast({ title: 'Success', description: 'Category created successfully.' });
     }
     setIsDialogOpen(false);
@@ -317,7 +334,7 @@ export function CategoriesPage() {
     if (categoryToDelete) {
       const descendantIds = getDescendantIds(categoryToDelete.id);
       const idsToDelete = [categoryToDelete.id, ...descendantIds];
-      setCategories(categories.filter((c) => !idsToDelete.includes(c.id)));
+      saveCategories(categories.filter((c) => !idsToDelete.includes(c.id)));
       setIsDeleteAlertOpen(false);
       setCategoryToDelete(null);
       toast({ title: 'Success', description: 'Category deleted successfully.' });
