@@ -21,7 +21,7 @@ import { transactions, categories, wallets, debts, updateTransactions, updateCat
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
-import type { Category, Transaction } from '@/types';
+import type { Category, Transaction, Event as EventType } from '@/types';
 import { format } from 'date-fns';
 import { Label } from '@/components/ui/label';
 
@@ -184,9 +184,10 @@ export function SettingsPage() {
             }
             
             // Validate Event (optional)
+            let foundEvent: EventType | undefined;
             if (row.Event) {
-                const event = events.find(e => e.name.toLowerCase() === row.Event.toLowerCase());
-                if (!event) {
+                foundEvent = events.find(e => e.name.toLowerCase() === row.Event.toLowerCase());
+                if (!foundEvent) {
                     toast({ variant: 'destructive', title: 'Import Failed', description: `Event '${row.Event}' not found on row ${rowNum}.` });
                      if(transactionImportRef.current) transactionImportRef.current.value = "";
                     setTransactionImportFile(null);
@@ -203,7 +204,7 @@ export function SettingsPage() {
                 wallet: wallet.name,
                 category: category.name,
                 description: row.Note || '',
-                event: row.Event || undefined,
+                event: foundEvent ? foundEvent.id : undefined,
                 excludeFromReports: row['Exclude Report']?.toLowerCase() === 'true',
             });
         }
@@ -667,3 +668,5 @@ export function SettingsPage() {
     </div>
   );
 }
+
+    
