@@ -187,7 +187,7 @@ export function TransactionForm({
     form.setValue('attachments', updatedAttachments);
   };
   
-  const filteredCategories = categories.filter(c => c.type === transactionType);
+  const filteredCategories = categories.filter(c => c.type === transactionType && c.parentId);
 
   if (!isLoaded) {
     return (
