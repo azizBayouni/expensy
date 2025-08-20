@@ -39,6 +39,7 @@ import { TransactionForm } from '@/components/transaction-form';
 
 
 export default function CategoryReportPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('breakdown');
@@ -48,8 +49,8 @@ export default function CategoryReportPage({ params }: { params: { id: string } 
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   const category = useMemo(() => 
-    allCategories.find(c => c.id === params.id),
-    [params.id]
+    allCategories.find(c => c.id === id),
+    [id]
   );
   
   const { from, to } = useMemo(() => ({
