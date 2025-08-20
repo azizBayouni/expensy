@@ -1,7 +1,9 @@
-import { clsx, type ClassValue } from "clsx"
+
+import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { type LucideIcon, Smile } from "lucide-react";
 import * as LucideIcons from 'lucide-react';
+import React from "react";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -56,13 +58,15 @@ const expenseEmojis: { emoji: string; name: string }[] = [
 export function getIconComponent(iconName: string | LucideIcon | undefined): LucideIcon {
   if (!iconName) return Smile;
   if (typeof iconName === 'function') return iconName;
+  
   if (expenseEmojis.some(e => e.emoji === iconName)) {
-    // eslint-disable-next-line react/display-name
-    const EmojiComponent = (props: any) => {
-      return <span {...props}>{iconName}</span>;
+    const EmojiComponent = (props: React.ComponentProps<'span'>) => {
+      return React.createElement('span', props, iconName);
     };
-    return EmojiComponent;
+    EmojiComponent.displayName = 'EmojiComponent';
+    return EmojiComponent as unknown as LucideIcon;
   }
+
   const Icon = LucideIcons[iconName as keyof typeof LucideIcons] || Smile;
   if (typeof Icon === 'function') {
       return Icon;
