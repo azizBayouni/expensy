@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from 'react';
-import { notFound, useRouter } from 'next/navigation';
+import { notFound, useRouter, useParams } from 'next/navigation';
 import { transactions as allTransactions, events as allEvents, updateTransactions, categories as allCategories } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
@@ -34,8 +34,9 @@ import {
 } from '@/components/ui/sheet';
 import { TransactionForm } from '@/components/transaction-form';
 
-export default function EventReportPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function EventReportPage() {
+  const params = useParams();
+  const id = params.id as string;
   const router = useRouter();
   const [transactions, setTransactions] = useState<Transaction[]>(allTransactions);
   const [isSheetOpen, setSheetOpen] = useState(false);
