@@ -76,8 +76,11 @@ export function CategoriesDonutChart({
     };
     
     const spendingByCategory = new Map<string, number>();
+    
+    // We only want to display top-level categories
+    const topLevelCategories = categories.filter(c => !c.parentId);
 
-    for (const category of categories) {
+    for (const category of topLevelCategories) {
       const descendantIds = getDescendantIds(category.id);
       const descendantNames = Array.from(descendantIds)
           .map(id => categoryIdMap.get(id)?.name)
