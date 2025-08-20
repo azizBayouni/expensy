@@ -29,7 +29,7 @@ import {
 import { CalendarIcon, Download, Paperclip, Trash2, Check, ChevronsUpDown } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, getWalletIcon } from '@/lib/utils';
 import type { Transaction } from '@/types';
 import { categories, wallets, events, updateWallets } from '@/lib/data';
 import { ScrollArea } from './ui/scroll-area';
@@ -334,11 +334,17 @@ export function TransactionForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {wallets.map((wallet) => (
-                              <SelectItem key={wallet.id} value={wallet.name}>
-                                {wallet.name}
-                              </SelectItem>
-                            ))}
+                            {wallets.map((wallet) => {
+                              const Icon = getWalletIcon(wallet.icon);
+                              return (
+                                <SelectItem key={wallet.id} value={wallet.name}>
+                                  <div className="flex items-center gap-2">
+                                    <Icon className="w-4 h-4" />
+                                    <span>{wallet.name}</span>
+                                  </div>
+                                </SelectItem>
+                              );
+                            })}
                           </SelectContent>
                         </Select>
                         <FormMessage />

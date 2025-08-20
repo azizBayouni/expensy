@@ -35,9 +35,9 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { TransactionForm } from '@/components/transaction-form';
-import { transactions as initialTransactions, categories, wallets, updateTransactions, events as eventData } from '@/lib/data';
+import { transactions as initialTransactions, categories, wallets, updateTransactions, events } from '@/lib/data';
 import type { Transaction } from '@/types';
-import { cn, getIconComponent } from '@/lib/utils';
+import { cn, getIconComponent, getWalletIcon } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -212,11 +212,17 @@ export function TransactionsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Wallets</SelectItem>
-              {wallets.map((w) => (
-                <SelectItem key={w.id} value={w.name}>
-                  {w.name}
-                </SelectItem>
-              ))}
+              {wallets.map((w) => {
+                const Icon = getWalletIcon(w.icon);
+                return (
+                    <SelectItem key={w.id} value={w.name}>
+                        <div className='flex items-center gap-2'>
+                           <Icon className="w-4 h-4" />
+                           <span>{w.name}</span>
+                        </div>
+                    </SelectItem>
+                )
+              })}
             </SelectContent>
           </Select>
           <Popover>
@@ -274,9 +280,11 @@ export function TransactionsPage() {
           </TableHeader>
           <TableBody>
             {filteredTransactions.map((transaction) => {
-              const event = eventData.find(e => e.id === transaction.event);
+              const event = events.find(e => e.id === transaction.event);
               const category = categories.find(c => c.name === transaction.category);
               const IconComponent = category ? getIconComponent(category.icon) : null;
+              const wallet = wallets.find(w => w.name === transaction.wallet);
+              const WalletIcon = wallet ? getWalletIcon(wallet.icon) : null;
 
               return (
               <TableRow key={transaction.id} onClick={() => handleEditTransaction(transaction)} className="cursor-pointer">
@@ -295,7 +303,12 @@ export function TransactionsPage() {
                     <span>{transaction.category}</span>
                   </Badge>
                 </TableCell>
-                <TableCell>{transaction.wallet}</TableCell>
+                <TableCell>
+                    <div className="flex items-center gap-2">
+                        {WalletIcon && <WalletIcon className="h-4 w-4 text-muted-foreground" />}
+                        <span>{transaction.wallet}</span>
+                    </div>
+                </TableCell>
                 <TableCell>{event?.name || '—'}</TableCell>
                 <TableCell
                   className={cn(
@@ -359,3 +372,5 @@ export function TransactionsPage() {
     </div>
   );
 }
+
+    

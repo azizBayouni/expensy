@@ -1,7 +1,7 @@
 
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { type LucideIcon, Smile } from "lucide-react";
+import { type LucideIcon, Smile, Landmark, CreditCard, PiggyBank, Wallet, CircleDollarSign, HelpCircle, Banknote } from "lucide-react";
 import * as LucideIcons from 'lucide-react';
 import React from "react";
 
@@ -9,6 +9,25 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+const walletIcons: { name: string; icon: LucideIcon }[] = [
+  { name: 'Landmark', icon: Landmark },
+  { name: 'CreditCard', icon: CreditCard },
+  { name: 'PiggyBank', icon: PiggyBank },
+  { name: 'Wallet', icon: Wallet },
+  { name: 'CircleDollarSign', icon: CircleDollarSign },
+  { name: 'Banknote', icon: Banknote },
+];
+
+export function getWalletIcon(iconName?: string): LucideIcon {
+    if (!iconName) return HelpCircle;
+    const iconItem = walletIcons.find((item) => item.name === iconName);
+    return iconItem ? iconItem.icon : HelpCircle;
+}
+
+export function getWalletIconName(IconComponent: LucideIcon): string {
+    const iconItem = walletIcons.find(item => item.icon === IconComponent);
+    return iconItem ? item.name : 'HelpCircle';
+}
 
 const expenseEmojis: { emoji: string; name: string }[] = [
     { emoji: '🛒', name: 'shopping cart' }, { emoji: '🍔', name: 'hamburger' }, { emoji: '🍕', name: 'pizza' }, { emoji: '🚗', name: 'car' }, { emoji: '🚌', name: 'bus' },
@@ -67,9 +86,10 @@ export function getIconComponent(iconName: string | LucideIcon | undefined): Luc
     return EmojiComponent as unknown as LucideIcon;
   }
 
-  const Icon = LucideIcons[iconName as keyof typeof LucideIcons] || Smile;
-  if (typeof Icon === 'function') {
-      return Icon;
+  const Icon = LucideIcons[iconName as keyof typeof LucideIcons] as LucideIcon | undefined;
+  if (Icon && typeof Icon === 'function') {
+    return Icon;
   }
+
   return Smile;
 }

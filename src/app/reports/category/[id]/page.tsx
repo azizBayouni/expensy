@@ -27,7 +27,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { cn, getIconComponent } from '@/lib/utils';
+import { cn, getIconComponent, getWalletIcon } from '@/lib/utils';
 import {
   Sheet,
   SheetContent,
@@ -336,7 +336,9 @@ export default function CategoryReportPage() {
                     <CommandList>
                         <CommandEmpty>No wallets found.</CommandEmpty>
                         <CommandGroup>
-                            {allWallets.map((wallet) => (
+                            {allWallets.map((wallet) => {
+                                const Icon = getWalletIcon(wallet.icon);
+                                return (
                                 <CommandItem
                                     key={wallet.id}
                                     onSelect={() => handleWalletToggle(wallet.id)}
@@ -348,9 +350,13 @@ export default function CategoryReportPage() {
                                             selectedWallets.includes(wallet.id) ? "opacity-100" : "opacity-0"
                                         )}
                                     />
-                                    <span>{wallet.name}</span>
+                                    <div className='flex items-center gap-2'>
+                                      <Icon className="h-4 w-4" />
+                                      <span>{wallet.name}</span>
+                                    </div>
                                 </CommandItem>
-                            ))}
+                                )
+                            })}
                         </CommandGroup>
                     </CommandList>
                 </Command>

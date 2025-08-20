@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, CalendarIcon } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { wallets as allWallets, transactions as allTransactions, categories as allCategories } from '@/lib/data';
-import { cn } from '@/lib/utils';
+import { cn, getWalletIcon } from '@/lib/utils';
 import {
   add,
   sub,
@@ -259,7 +259,9 @@ export default function ReportsPage() {
                         <CommandList>
                             <CommandEmpty>No wallets found.</CommandEmpty>
                             <CommandGroup>
-                                {allWallets.map((wallet) => (
+                                {allWallets.map((wallet) => {
+                                  const Icon = getWalletIcon(wallet.icon);
+                                  return (
                                     <CommandItem
                                         key={wallet.id}
                                         onSelect={() => handleWalletToggle(wallet.id)}
@@ -271,9 +273,13 @@ export default function ReportsPage() {
                                                 selectedWallets.includes(wallet.id) ? "opacity-100" : "opacity-0"
                                             )}
                                         />
-                                        <span>{wallet.name}</span>
+                                        <div className="flex items-center gap-2">
+                                           <Icon className="h-4 w-4" />
+                                           <span>{wallet.name}</span>
+                                        </div>
                                     </CommandItem>
-                                ))}
+                                  )
+                                })}
                             </CommandGroup>
                         </CommandList>
                     </Command>

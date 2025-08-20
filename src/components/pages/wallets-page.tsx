@@ -21,6 +21,7 @@ import {
   CircleDollarSign,
   HelpCircle,
   Star,
+  Banknote,
 } from 'lucide-react';
 import { wallets as initialWallets, transactions, updateWallets } from '@/lib/data';
 import type { Wallet } from '@/types';
@@ -31,7 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
+import { cn, getWalletIcon, getWalletIconName } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -78,6 +79,7 @@ const walletIcons: { name: string; icon: LucideIcon }[] = [
   { name: 'PiggyBank', icon: PiggyBank },
   { name: 'Wallet', icon: WalletIcon },
   { name: 'CircleDollarSign', icon: CircleDollarSign },
+  { name: 'Banknote', icon: Banknote },
 ];
 
 const walletSchema = z.object({
@@ -86,17 +88,6 @@ const walletSchema = z.object({
 });
 
 type WalletFormData = z.infer<typeof walletSchema>;
-
-function getIconComponent(iconName: string | undefined): LucideIcon {
-  if (!iconName) return HelpCircle;
-  const iconItem = walletIcons.find((item) => item.name === iconName);
-  return iconItem ? iconItem.icon : HelpCircle;
-}
-
-function getIconName(IconComponent: LucideIcon): string {
-    const iconItem = walletIcons.find(item => item.icon === IconComponent);
-    return iconItem ? item.name : 'HelpCircle';
-}
 
 export function WalletsPage() {
   const [wallets, setWallets] = useState<Wallet[]>(initialWallets);
@@ -132,7 +123,7 @@ export function WalletsPage() {
     setSelectedWallet(wallet);
     form.reset({
       name: wallet.name,
-      icon: getIconName(wallet.icon),
+      icon: wallet.icon,
     });
     setIsDialogOpen(true);
   };
@@ -173,7 +164,7 @@ export function WalletsPage() {
       const updatedWallet: Wallet = {
         ...selectedWallet,
         name: data.name,
-        icon: getIconComponent(data.icon),
+        icon: data.icon,
       };
       const newWallets = wallets.map((w) => (w.id === selectedWallet.id ? updatedWallet : w));
       updateAndSaveWallets(newWallets);
@@ -182,7 +173,7 @@ export function WalletsPage() {
       const newWallet: Wallet = {
         id: `wallet-${Date.now()}`,
         name: data.name,
-        icon: getIconComponent(data.icon),
+        icon: data.icon,
         currency: 'SAR',
         balance: 0,
         isDefault: false,
@@ -220,7 +211,7 @@ export function WalletsPage() {
 
       <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {wallets.map((wallet) => {
-          const Icon = wallet.icon;
+          const Icon = getWalletIcon(wallet.icon);
           return (
             <Card key={wallet.id} className={cn("flex flex-col", wallet.isDefault && "border-primary")}>
               <CardHeader>

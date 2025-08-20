@@ -229,7 +229,7 @@ export let wallets: Wallet[] = [
   {
     id: 'wallet-1',
     name: 'Main Bank Account',
-    icon: Landmark,
+    icon: 'Landmark',
     currency: 'SAR',
     balance: 1159.50,
     isDefault: true,
@@ -237,7 +237,7 @@ export let wallets: Wallet[] = [
   {
     id: 'wallet-2',
     name: 'Credit Card',
-    icon: CreditCard,
+    icon: 'CreditCard',
     currency: 'SAR',
     balance: -920.00,
     isDefault: false,
@@ -245,7 +245,7 @@ export let wallets: Wallet[] = [
   {
     id: 'wallet-3',
     name: 'Savings',
-    icon: PiggyBank,
+    icon: 'PiggyBank',
     currency: 'SAR',
     balance: 15800.00,
     isDefault: false,
@@ -253,7 +253,7 @@ export let wallets: Wallet[] = [
   {
     id: 'wallet-4',
     name: 'PayPal',
-    icon: WalletIcon,
+    icon: 'Wallet',
     currency: 'SAR',
     balance: 550.00,
     isDefault: false,
@@ -261,7 +261,7 @@ export let wallets: Wallet[] = [
     {
     id: 'wallet-5',
     name: 'Debit Card',
-    icon: Banknote,
+    icon: 'Banknote',
     currency: 'SAR',
     balance: 1200.00,
     isDefault: false,

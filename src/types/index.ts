@@ -55,7 +55,7 @@ export type Event = {
 export type Wallet = {
   id: string;
   name: string;
-  icon: LucideIcon;
+  icon: string;
   currency: string;
   balance: number;
   isDefault?: boolean;
