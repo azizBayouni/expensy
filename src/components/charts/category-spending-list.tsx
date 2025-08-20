@@ -44,24 +44,28 @@ export function CategorySpendingList({
 
   const sortedCategories = useMemo(() => {
     const expenseTransactions = transactions.filter(t => t.type === 'expense');
-    const categoryNameMap = new Map(allCategories.map(c => [c.name, c]));
     const categoryIdMap = new Map(allCategories.map(c => [c.id, c]));
 
     const getDescendantIds = (categoryId: string): Set<string> => {
-        const ids = new Set<string>();
+        const ids = new Set<string>([categoryId]);
         const queue = [categoryId];
         while(queue.length > 0) {
             const currentId = queue.shift()!;
-            ids.add(currentId);
             const children = allCategories.filter(c => c.parentId === currentId);
-            children.forEach(child => queue.push(child.id));
+            children.forEach(child => {
+              ids.add(child.id);
+              queue.push(child.id);
+            });
         }
         return ids;
     };
+    
+    // We only want to display top-level categories
+    const topLevelCategories = categories.filter(c => !c.parentId);
 
     const spendingByCategory = new Map<string, number>();
 
-    for (const category of categories) {
+    for (const category of topLevelCategories) {
         const descendantIds = getDescendantIds(category.id);
         const descendantNames = Array.from(descendantIds)
             .map(id => categoryIdMap.get(id)?.name)
@@ -76,7 +80,7 @@ export function CategorySpendingList({
         }
     }
 
-    return categories
+    return topLevelCategories
         .map(category => ({
           ...category,
           total: spendingByCategory.get(category.id) || 0,
