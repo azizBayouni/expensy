@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState } from 'react';
-import { notFound, useRouter, useSearchParams } from 'next/navigation';
+import { notFound, useRouter, useSearchParams, useParams } from 'next/navigation';
 import { transactions as allTransactions, categories as allCategories, updateTransactions } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
@@ -38,8 +38,9 @@ import {
 import { TransactionForm } from '@/components/transaction-form';
 
 
-export default function CategoryReportPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function CategoryReportPage() {
+  const params = useParams();
+  const id = params.id as string;
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('breakdown');
