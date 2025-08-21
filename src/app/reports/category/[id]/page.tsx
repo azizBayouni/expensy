@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { notFound, useRouter, useSearchParams, useParams, usePathname } from 'next/navigation';
 import { transactions as allTransactions, categories as allCategories, updateTransactions, wallets as allWallets } from '@/lib/data';
 import { Button } from '@/components/ui/button';
@@ -540,3 +540,5 @@ export default function CategoryReportPage() {
     </div>
   );
 }
+
+    
