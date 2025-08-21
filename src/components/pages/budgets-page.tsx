@@ -122,6 +122,7 @@ export function BudgetsPage() {
       toast({ title: 'Success', description: 'Budget deleted successfully.' });
       setIsDeleteAlertOpen(false);
       setBudgetToDelete(null);
+      setIsDialogOpen(false);
     }
   };
 
