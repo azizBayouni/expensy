@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
 import {
   Card,
@@ -19,9 +19,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowDown, ArrowUp, DollarSign } from 'lucide-react';
-import { transactions, budgets, categories as allCategories } from '@/lib/data';
-import type { Transaction, Budget } from '@/types';
+import { ArrowDown, ArrowUp, DollarSign, PlusCircle } from 'lucide-react';
+import { transactions as initialTransactions, budgets, categories as allCategories, updateTransactions } from '@/lib/data';
+import type { Transaction } from '@/types';
 import { cn } from '@/lib/utils';
 import {
   ChartContainer,
@@ -29,8 +29,21 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart';
 import { startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO, format, subMonths } from 'date-fns';
+import { Button } from '../ui/button';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
+import { TransactionForm } from '../transaction-form';
 
 export function DashboardPage() {
+    const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+    const [isSheetOpen, setSheetOpen] = useState(false);
+    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+
     const { totalBalance, totalIncome, totalExpense, recentTransactions } = useMemo(() => {
         const now = new Date();
         const startOfCurrentMonth = startOfMonth(now);
@@ -58,7 +71,7 @@ export function DashboardPage() {
             .slice(0, 5);
         
         return { totalBalance, totalIncome, totalExpense, recentTransactions };
-    }, []);
+    }, [transactions]);
 
     const budgetChartData = useMemo(() => {
         return budgets.map(budget => {
@@ -107,9 +120,52 @@ export function DashboardPage() {
             };
         });
     }, [budgets, transactions, allCategories]);
+    
+    const saveTransactions = (newTransactions: Transaction[]) => {
+      updateTransactions(newTransactions);
+      setTransactions(newTransactions);
+    };
+
+    const handleAddTransaction = () => {
+        setSelectedTransaction(null);
+        setSheetOpen(true);
+    };
+
+    const handleFormSubmit = (data: Transaction) => {
+        let newTransactions: Transaction[];
+        if (selectedTransaction) {
+        newTransactions = transactions.map((t) =>
+            t.id === selectedTransaction.id ? { ...t, ...data } : t
+        );
+        } else {
+        newTransactions = [{ ...data, id: `trx-${Date.now()}` }, ...transactions];
+        }
+        saveTransactions(newTransactions);
+        setSheetOpen(false);
+    };
+
+    const handleDeleteTransaction = (id: string) => {
+        const newTransactions = transactions.filter((t) => t.id !== id);
+        saveTransactions(newTransactions);
+        setSheetOpen(false);
+    };
+
 
   return (
     <div className="flex flex-col gap-8">
+       <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
+          <p className="text-muted-foreground">
+            A quick overview of your financial status.
+          </p>
+        </div>
+        <Button onClick={handleAddTransaction}>
+          <PlusCircle className="w-4 h-4 mr-2" />
+          Add Transaction
+        </Button>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -235,6 +291,27 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent className="sm:max-w-[500px]">
+          <SheetHeader>
+            <SheetTitle>
+              {selectedTransaction ? 'Edit Transaction' : 'Add Transaction'}
+            </SheetTitle>
+            <SheetDescription>
+              {selectedTransaction
+                ? 'Update the details of your transaction.'
+                : 'Add a new transaction to your records.'}
+            </SheetDescription>
+          </SheetHeader>
+          <TransactionForm
+            onSubmit={handleFormSubmit}
+            transaction={selectedTransaction}
+            onDelete={handleDeleteTransaction}
+            onCancel={() => setSheetOpen(false)}
+          />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
