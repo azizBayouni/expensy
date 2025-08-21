@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo } from 'react';
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
 import {
   Card,
   CardContent,
@@ -175,7 +175,18 @@ export function DashboardPage() {
                 />
                 <Legend />
                 <Bar dataKey="budgeted" fill="var(--color-budgeted)" radius={4} />
-                <Bar dataKey="spent" fill="var(--color-spent)" radius={4} />
+                <Bar dataKey="spent" radius={4}>
+                  {budgetChartData.map((entry, index) => {
+                    const percentage = entry.budgeted > 0 ? (entry.spent / entry.budgeted) * 100 : 0;
+                    let color = 'hsl(var(--chart-1))'; // Default color
+                    if (percentage > 100) {
+                      color = 'hsl(var(--destructive))'; // Red for over budget
+                    } else if (percentage >= 90) {
+                      color = 'hsl(var(--chart-4))'; // Orange for nearing budget
+                    }
+                    return <Cell key={`cell-${index}`} fill={color} />;
+                  })}
+                </Bar>
               </BarChart>
             </ChartContainer>
           </CardContent>
