@@ -60,3 +60,12 @@ export type Wallet = {
   balance: number;
   isDefault?: boolean;
 };
+
+export type Budget = {
+  id: string;
+  name: string;
+  categoryId: string;
+  amount: number;
+  period: 'monthly' | 'yearly';
+  startDate: string;
+};

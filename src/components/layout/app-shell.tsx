@@ -27,6 +27,7 @@ import {
   Settings,
   Plane,
   LineChart,
+  Target,
 } from 'lucide-react';
 import { Logo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -83,6 +84,11 @@ const navItems = [
     href: '/categories',
     label: 'Categories',
     icon: Shapes,
+  },
+  {
+    href: '/budgets',
+    label: 'Budgets',
+    icon: Target,
   },
   {
     href: '/debts',

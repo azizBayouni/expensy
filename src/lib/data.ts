@@ -1,5 +1,5 @@
 
-import type { Transaction, Category, Debt, Event, Wallet } from '@/types';
+import type { Transaction, Category, Debt, Event, Wallet, Budget } from '@/types';
 import {
   Briefcase,
   Car,
@@ -277,3 +277,13 @@ export function updateWallets(newWallets: Wallet[]) {
 export const top100Currencies = [
   'SAR', 'USD', 'EUR', 'JPY', 'GBP', 'AUD', 'CAD', 'CHF', 'CNY', 'HKD', 'NZD', 'SEK', 'KRW', 'SGD', 'NOK', 'MXN', 'INR', 'RUB', 'ZAR', 'TRY', 'BRL', 'TWD', 'DKK', 'PLN', 'THB', 'IDR', 'HUF', 'CZK', 'ILS', 'CLP', 'PHP', 'AED', 'COP', 'MYR', 'RON', 'UAH', 'VND', 'ARS', 'NGN', 'EGP', 'IQD', 'DZD', 'MAD', 'KZT', 'QAR', 'KWD', 'OMR', 'BHD', 'JOD', 'LBP', 'SYP', 'YER', 'IRR', 'PKR', 'BDT', 'LKR', 'NPR', 'AFN', 'MMK', 'KHR', 'LAK', 'MNT', 'UZS', 'TJS', 'KGS', 'TMT', 'GEL', 'AZN', 'AMD', 'BYN', 'MDL', 'RSD', 'BAM', 'MKD', 'ALL', 'ISK', 'GHS', 'KES', 'UGX', 'TZS', 'ZMW', 'ZWL', 'GMD', 'SLL', 'LRD', 'CVE', 'GNF', 'XOF', 'XAF', 'CDF', 'BIF', 'RWF', 'SOS', 'SDG', 'LYD', 'TND'
 ];
+
+export let budgets: Budget[] = [
+    { id: 'budget-1', name: 'Monthly Food', categoryId: 'cat-exp-1', amount: 800, period: 'monthly', startDate: '2024-07-01' },
+    { id: 'budget-2', name: 'Transportation', categoryId: 'cat-exp-7', amount: 200, period: 'monthly', startDate: '2024-07-01' },
+    { id: 'budget-3', name: 'Annual Travel', categoryId: 'cat-exp-16', amount: 3000, period: 'yearly', startDate: '2024-01-01' },
+];
+
+export function updateBudgets(newBudgets: Budget[]) {
+    budgets = newBudgets;
+}
