@@ -393,6 +393,7 @@ export function SettingsPage() {
         toast({ title: "Success", description: "All transactions and debts have been deleted." });
     } else if (dialogType === 'categories') {
         updateCategories([]);
+        localStorage.removeItem('categories');
         toast({ title: "Success", description: "All categories have been deleted." });
     }
     
@@ -667,3 +668,4 @@ export function SettingsPage() {
     
 
     
+
