@@ -626,7 +626,7 @@ export function SettingsPage() {
                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                 <AlertDialogDescription>
                   {dialogType === 'transactions' && 'This will permanently delete all your transactions and debts. '}
-                  {dialogType === 'categories' && 'This will permanently delete all your categories. You must delete all transactions first. '}
+                  {dialogType === 'categories' && 'This will permanently delete all your categories. '}
                   This action is irreversible.
                 </AlertDialogDescription>
               </AlertDialogHeader>
