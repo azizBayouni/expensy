@@ -1,6 +1,8 @@
+
 "use client";
 
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useMemo } from 'react';
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
   Card,
   CardContent,
@@ -18,40 +20,94 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ArrowDown, ArrowUp, DollarSign } from 'lucide-react';
-import { transactions } from '@/lib/data';
-import type { Transaction } from '@/types';
+import { transactions, budgets, categories as allCategories } from '@/lib/data';
+import type { Transaction, Budget } from '@/types';
 import { cn } from '@/lib/utils';
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-
-const chartData = [
-  { month: 'Jan', income: 4000, expense: 2400 },
-  { month: 'Feb', income: 3000, expense: 1398 },
-  { month: 'Mar', income: 5000, expense: 9800 },
-  { month: 'Apr', income: 2780, expense: 3908 },
-  { month: 'May', income: 1890, expense: 4800 },
-  { month: 'Jun', income: 2390, expense: 3800 },
-  { month: 'Jul', income: 5250, expense: 1950 },
-];
+import { startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO, format, subMonths } from 'date-fns';
 
 export function DashboardPage() {
-  const totalBalance = transactions.reduce((acc, t) => {
-    return t.type === 'income' ? acc + t.amount : acc - t.amount;
-  }, 0);
-  const totalIncome = transactions
-    .filter((t) => t.type === 'income')
-    .reduce((acc, t) => acc + t.amount, 0);
-  const totalExpense = transactions
-    .filter((t) => t.type === 'expense')
-    .reduce((acc, t) => acc + t.amount, 0);
+    const { totalBalance, totalIncome, totalExpense, recentTransactions } = useMemo(() => {
+        const now = new Date();
+        const startOfCurrentMonth = startOfMonth(now);
+        const endOfCurrentMonth = endOfMonth(now);
 
-  const recentTransactions = [...transactions]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5);
-    
+        const currentMonthTransactions = transactions.filter(t => {
+            const transactionDate = parseISO(t.date);
+            return transactionDate >= startOfCurrentMonth && transactionDate <= endOfCurrentMonth;
+        });
+
+        const totalBalance = transactions.reduce((acc, t) => {
+            return t.type === 'income' ? acc + t.amount : acc - t.amount;
+        }, 0);
+
+        const totalIncome = currentMonthTransactions
+            .filter((t) => t.type === 'income')
+            .reduce((acc, t) => acc + t.amount, 0);
+
+        const totalExpense = currentMonthTransactions
+            .filter((t) => t.type === 'expense')
+            .reduce((acc, t) => acc + t.amount, 0);
+
+        const recentTransactions = [...transactions]
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .slice(0, 5);
+        
+        return { totalBalance, totalIncome, totalExpense, recentTransactions };
+    }, []);
+
+    const budgetChartData = useMemo(() => {
+        return budgets.map(budget => {
+            const today = new Date();
+            let startDate, endDate;
+
+            if (budget.period === 'monthly') {
+                startDate = startOfMonth(today);
+                endDate = endOfMonth(today);
+            } else {
+                startDate = startOfYear(today);
+                endDate = endOfYear(today);
+            }
+
+            const category = allCategories.find(c => c.id === budget.categoryId);
+            if (!category) return { name: budget.name, budgeted: budget.amount, spent: 0 };
+
+            const descendantIds = new Set<string>();
+            const getDescendants = (catId: string) => {
+                descendantIds.add(catId);
+                const children = allCategories.filter(c => c.parentId === catId);
+                children.forEach(child => getDescendants(child.id));
+            };
+            getDescendants(category.id);
+            
+            const descendantCategoryNames = Array.from(descendantIds)
+                .map(id => allCategories.find(c => c.id === id)?.name)
+                .filter((name): name is string => !!name);
+
+            const spent = transactions
+                .filter((t) => {
+                    const transactionDate = parseISO(t.date);
+                    return (
+                        t.type === 'expense' &&
+                        descendantCategoryNames.includes(t.category) &&
+                        transactionDate >= startDate &&
+                        transactionDate <= endDate
+                    );
+                })
+                .reduce((acc, t) => acc + t.amount, 0);
+            
+            return {
+                name: budget.name,
+                budgeted: budget.amount,
+                spent: spent,
+            };
+        });
+    }, [budgets, transactions, allCategories]);
+
   return (
     <div className="flex flex-col gap-8">
       <div className="grid gap-4 md:grid-cols-3">
@@ -62,9 +118,9 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {totalBalance.toLocaleString()} SAR
+              {totalBalance.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
             </div>
-            <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+            <p className="text-xs text-muted-foreground">Across all wallets</p>
           </CardContent>
         </Card>
         <Card>
@@ -74,7 +130,7 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              +{totalIncome.toLocaleString()} SAR
+              +{totalIncome.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
             </div>
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
@@ -86,7 +142,7 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              -{totalExpense.toLocaleString()} SAR
+              -{totalExpense.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
             </div>
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
@@ -96,29 +152,30 @@ export function DashboardPage() {
       <div className="grid gap-8 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Income vs. Expense</CardTitle>
+            <CardTitle>Budgets vs. Actuals</CardTitle>
             <CardDescription>
-              A look at your financial flow over the past months.
+              How your spending compares to your budgets this period.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer
               config={{
-                income: { label: 'Income', color: 'hsl(var(--chart-2))' },
-                expense: { label: 'Expense', color: 'hsl(var(--chart-1))' },
+                budgeted: { label: 'Budgeted', color: 'hsl(var(--chart-2))' },
+                spent: { label: 'Spent', color: 'hsl(var(--chart-1))' },
               }}
               className="h-[300px] w-full"
             >
-              <BarChart data={chartData} accessibilityLayer>
+              <BarChart data={budgetChartData} accessibilityLayer>
                 <CartesianGrid vertical={false} />
-                <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
-                <YAxis tickLine={false} axisLine={false} width={30} />
+                <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
+                <YAxis tickLine={false} axisLine={false} width={80} tickFormatter={(value) => value.toLocaleString()} />
                 <Tooltip
                   cursor={false}
                   content={<ChartTooltipContent indicator="dot" />}
                 />
-                <Bar dataKey="income" fill="var(--color-income)" radius={4} />
-                <Bar dataKey="expense" fill="var(--color-expense)" radius={4} />
+                <Legend />
+                <Bar dataKey="budgeted" fill="var(--color-budgeted)" radius={4} />
+                <Bar dataKey="spent" fill="var(--color-spent)" radius={4} />
               </BarChart>
             </ChartContainer>
           </CardContent>
@@ -158,7 +215,7 @@ export function DashboardPage() {
                       )}
                     >
                       {transaction.type === 'income' ? '+' : '-'}
-                      {transaction.amount.toFixed(2)} SAR
+                      {transaction.amount.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
                     </TableCell>
                   </TableRow>
                 ))}
