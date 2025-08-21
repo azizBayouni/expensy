@@ -5,7 +5,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { notFound, useRouter, useSearchParams, useParams, usePathname } from 'next/navigation';
 import { transactions as allTransactions, categories as allCategories, updateTransactions, wallets as allWallets } from '@/lib/data';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronsUpDown, Check, CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronsUpDown, Check, CalendarIcon, ChevronRight } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -40,6 +40,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { TimeRangePicker, type TimeRange } from '@/components/ui/time-range-picker';
 import { DateRange } from 'react-day-picker';
+import Link from 'next/link';
 
 export default function CategoryReportPage() {
   const params = useParams();
@@ -86,10 +87,18 @@ export default function CategoryReportPage() {
     }
   }, [searchParams]);
 
-  const category = useMemo(() => 
-    allCategories.find(c => c.id === id),
-    [id]
-  );
+  const { category, breadcrumbs } = useMemo(() => {
+    const cat = allCategories.find(c => c.id === id);
+    if (!cat) return { category: null, breadcrumbs: [] };
+
+    const crumbs = [];
+    let current: Category | undefined = cat;
+    while(current) {
+        crumbs.unshift(current);
+        current = current.parentId ? allCategories.find(c => c.id === current.parentId) : undefined;
+    }
+    return { category: cat, breadcrumbs: crumbs };
+  }, [id]);
   
   const { startDate, endDate } = useMemo(() => {
       let start: Date, end: Date;
@@ -155,6 +164,8 @@ export default function CategoryReportPage() {
           params.delete('offset');
       }
 
+      // We only want to persist the main ID in the URL path, not the drill-down state.
+      // So we use router.replace with the current path, but only update query params.
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }, [selectedWallets, timeRange, startDate, endDate, dateOffset, pathname, router, searchParams]);
 
@@ -242,9 +253,21 @@ export default function CategoryReportPage() {
   };
 
   const handleSubCategoryClick = (categoryName: string) => {
-    setSelectedSubCategory(categoryName);
-    setActiveTab('transactions');
-  }
+      const clickedCat = allCategories.find(c => c.name === categoryName);
+      if (!clickedCat) return;
+
+      const hasChildren = allCategories.some(c => c.parentId === clickedCat.id);
+      
+      const newPath = `/reports/category/${clickedCat.id}`;
+      const currentQuery = searchParams.toString();
+      
+      if (hasChildren) {
+          router.push(`${newPath}?${currentQuery}`);
+      } else {
+          setSelectedSubCategory(categoryName);
+          setActiveTab('transactions');
+      }
+  };
 
   const handleWalletToggle = (walletId: string) => {
       setSelectedWallets(prev => 
@@ -299,12 +322,24 @@ export default function CategoryReportPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={() => router.back()}>
-            <ChevronLeft className="h-4 w-4" />
+            <Button variant="outline" size="icon" onClick={() => router.push('/reports')}>
+              <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div className="flex items-center gap-3">
-                <IconComponent className="w-8 h-8" />
-                <h1 className="text-2xl font-bold">{category.name}</h1>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                {breadcrumbs.map((crumb, index) => (
+                    <React.Fragment key={crumb.id}>
+                        {index > 0 && <ChevronRight className="h-4 w-4" />}
+                        <Link 
+                            href={`/reports/category/${crumb.id}?${searchParams.toString()}`}
+                            className={cn(
+                                "hover:text-foreground",
+                                index === breadcrumbs.length - 1 && "text-foreground font-semibold"
+                            )}
+                        >
+                            {crumb.name}
+                        </Link>
+                    </React.Fragment>
+                ))}
             </div>
         </div>
          {selectedSubCategory && (
@@ -320,7 +355,7 @@ export default function CategoryReportPage() {
                 <Button
                     variant="outline"
                     role="combobox"
-                    className="w-full md:w-[200px] justify-between mt-2"
+                    className="w-full md:w-[200px] justify-between"
                 >
                     <span>
                         {selectedWallets.length === allWallets.length
