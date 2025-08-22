@@ -17,6 +17,11 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import {
   ArrowLeftRight,
   LayoutDashboard,
   ListTodo,
@@ -29,6 +34,8 @@ import {
   LineChart,
   Target,
   Gem,
+  Landmark,
+  ChevronRight,
 } from 'lucide-react';
 import { Logo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -85,6 +92,13 @@ const navItems = [
     href: '/wealth',
     label: 'Wealth',
     icon: Gem,
+    subItems: [
+        {
+            href: '/wealth/bank-accounts',
+            label: 'Bank Accounts',
+            icon: Landmark,
+        }
+    ]
   },
   {
     href: '/categories',
@@ -256,6 +270,20 @@ function TravelModeDialog() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [openCollapsibles, setOpenCollapsibles] = React.useState<string[]>([]);
+
+  React.useEffect(() => {
+    const activeItem = navItems.find(item => item.subItems?.some(sub => pathname.startsWith(sub.href)));
+    if (activeItem) {
+      setOpenCollapsibles(prev => [...new Set([...prev, activeItem.href])]);
+    }
+  }, [pathname]);
+
+  const handleOpenChange = (href: string, isOpen: boolean) => {
+    setOpenCollapsibles(prev => 
+      isOpen ? [...prev, href] : prev.filter(item => item !== href)
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -269,18 +297,62 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <SidebarContent>
           <SidebarMenu>
             {navItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === item.href}
-                  tooltip={item.label}
+              item.subItems ? (
+                <Collapsible 
+                  key={item.href} 
+                  open={openCollapsibles.includes(item.href)} 
+                  onOpenChange={(isOpen) => handleOpenChange(item.href, isOpen)}
                 >
-                  <Link href={item.href}>
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                  <SidebarMenuItem>
+                      <CollapsibleTrigger asChild>
+                          <SidebarMenuButton
+                              variant="ghost"
+                              className="justify-between"
+                              isActive={pathname.startsWith(item.href)}
+                              tooltip={item.label}
+                          >
+                              <div className="flex items-center gap-2">
+                                  <item.icon />
+                                  <span>{item.label}</span>
+                              </div>
+                              <ChevronRight className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-90" />
+                          </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                  </SidebarMenuItem>
+                  <CollapsibleContent>
+                      <div className="pl-8 py-1 flex flex-col gap-1">
+                          {item.subItems.map((subItem) => (
+                              <SidebarMenuItem key={subItem.href}>
+                                  <SidebarMenuButton
+                                      asChild
+                                      size="sm"
+                                      variant="ghost"
+                                      isActive={pathname === subItem.href}
+                                      tooltip={subItem.label}
+                                  >
+                                      <Link href={subItem.href}>
+                                          <span>{subItem.label}</span>
+                                      </Link>
+                                  </SidebarMenuButton>
+                              </SidebarMenuItem>
+                          ))}
+                      </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              ) : (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.href}
+                    tooltip={item.label}
+                  >
+                    <Link href={item.href}>
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )
             ))}
           </SidebarMenu>
         </SidebarContent>
@@ -321,7 +393,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="flex items-center justify-between p-4 border-b">
           <SidebarTrigger />
           <h2 className="text-lg font-semibold">
-            {navItems.find((item) => item.href === pathname)?.label || 'Dashboard'}
+            {navItems.find((item) => item.href === pathname || item.subItems?.some(sub => sub.href === pathname))?.label || 'Dashboard'}
           </h2>
           <TravelModeDialog />
         </header>
