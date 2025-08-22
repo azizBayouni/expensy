@@ -20,7 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, PlusCircle } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -45,7 +45,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { InvestmentForm } from '../investment-form';
 
-export function InvestmentWalletPage() {
+export function InvestmentHistoryPage() {
   const router = useRouter();
   const [assets, setAssets] = useState<Asset[]>(initialAssets);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -53,20 +53,15 @@ export function InvestmentWalletPage() {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const { toast } = useToast();
 
-  const { investmentAssets, totalBalance } = useMemo(() => {
-    const accounts = assets.filter((a) => a.type === 'Investment' && a.status === 'active');
+  const { inactiveInvestmentAssets, totalValue } = useMemo(() => {
+    const accounts = assets.filter((a) => a.type === 'Investment' && a.status === 'inactive');
     const total = accounts.reduce((acc, a) => acc + a.value, 0);
-    return { investmentAssets: accounts, totalBalance: total };
+    return { inactiveInvestmentAssets: accounts, totalValue: total };
   }, [assets]);
   
   const saveAssets = (newAssets: Asset[]) => {
     setAssets(newAssets);
     updateAssets(newAssets);
-  };
-  
-  const openAddDialog = () => {
-    setSelectedAsset(null);
-    setIsDialogOpen(true);
   };
 
   const openEditDialog = (asset: Asset) => {
@@ -100,7 +95,6 @@ export function InvestmentWalletPage() {
     setIsDialogOpen(false);
   };
 
-
   return (
     <div className="space-y-6">
        <div className="flex items-center justify-between">
@@ -109,26 +103,22 @@ export function InvestmentWalletPage() {
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <div>
-                <h2 className="text-2xl font-bold tracking-tight">Investment Wallet</h2>
+                <h2 className="text-2xl font-bold tracking-tight">Investment History</h2>
                 <p className="text-muted-foreground">
-                    A detailed view of your active investment assets.
+                    A record of your inactive or closed investments.
                 </p>
             </div>
         </div>
-        <Button onClick={openAddDialog}>
-            <PlusCircle className="w-4 h-4 mr-2" />
-            Add Investment
-        </Button>
       </div>
       
       <Card>
         <CardHeader>
-          <CardTitle>Total Investment Value</CardTitle>
-          <CardDescription>The sum of all your active investment assets.</CardDescription>
+          <CardTitle>Total Value of Inactive Investments</CardTitle>
+          <CardDescription>The sum of all your archived investment assets.</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-3xl font-bold">
-            {totalBalance.toLocaleString('en-US', {
+            {totalValue.toLocaleString('en-US', {
               style: 'currency',
               currency: 'SAR',
             })}
@@ -138,8 +128,8 @@ export function InvestmentWalletPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Investments</CardTitle>
-          <CardDescription>A list of your individual investment assets.</CardDescription>
+          <CardTitle>Archived Investments</CardTitle>
+          <CardDescription>A list of your inactive investment assets.</CardDescription>
         </CardHeader>
         <CardContent>
            <div className="border rounded-md">
@@ -158,7 +148,7 @@ export function InvestmentWalletPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {investmentAssets.map((asset) => (
+                    {inactiveInvestmentAssets.map((asset) => (
                     <TableRow key={asset.name} onClick={() => openEditDialog(asset)} className="cursor-pointer">
                         <TableCell className="font-medium">{asset.platform || 'N/A'}</TableCell>
                         <TableCell>{asset.name}</TableCell>
@@ -185,6 +175,11 @@ export function InvestmentWalletPage() {
                     ))}
                 </TableBody>
             </Table>
+            {inactiveInvestmentAssets.length === 0 && (
+                <div className="text-center p-8 text-muted-foreground">
+                    No inactive investments found.
+                </div>
+            )}
            </div>
         </CardContent>
       </Card>

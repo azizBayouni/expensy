@@ -22,11 +22,13 @@ import { cn } from '@/lib/utils';
 import type { Asset } from '@/types';
 import { DialogFooter } from './ui/dialog';
 import { ScrollArea } from './ui/scroll-area';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 
 const assetSchema = z.object({
   name: z.string().min(2, 'Name is required.'),
   value: z.coerce.number().min(0, 'Value must be a non-negative number.'),
   type: z.literal('Investment'),
+  status: z.enum(['active', 'inactive']).optional(),
   platform: z.string().optional(),
   assetType: z.string().optional(),
   units: z.coerce.number().optional(),
@@ -52,6 +54,7 @@ export function InvestmentForm({ asset, onSubmit, onCancel, onDelete }: Investme
       name: asset?.name || '',
       value: asset?.value || 0,
       type: 'Investment',
+      status: asset?.status || 'active',
       platform: asset?.platform || '',
       assetType: asset?.assetType || '',
       units: asset?.units || undefined,
@@ -225,6 +228,36 @@ export function InvestmentForm({ asset, onSubmit, onCancel, onDelete }: Investme
                     )}
                  />
             </div>
+            <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <FormControl>
+                        <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex space-x-4"
+                        >
+                        <FormItem className="flex items-center space-x-2">
+                            <FormControl>
+                            <RadioGroupItem value="active" />
+                            </FormControl>
+                            <FormLabel>Active</FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-2">
+                            <FormControl>
+                            <RadioGroupItem value="inactive" />
+                            </FormControl>
+                            <FormLabel>Inactive</FormLabel>
+                        </FormItem>
+                        </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
           </div>
         </ScrollArea>
         <DialogFooter>

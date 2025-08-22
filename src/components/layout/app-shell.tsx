@@ -38,6 +38,7 @@ import {
   ChevronRight,
   CandlestickChart,
   Home,
+  History,
 } from 'lucide-react';
 import { Logo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -104,6 +105,11 @@ const navItems = [
             href: '/wealth/investment-wallet',
             label: 'Investment Wallet',
             icon: CandlestickChart,
+        },
+        {
+            href: '/wealth/investment-history',
+            label: 'Investment History',
+            icon: History,
         },
         {
             href: '/wealth/other-assets',

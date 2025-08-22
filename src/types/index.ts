@@ -76,6 +76,7 @@ export type Asset = {
   type: string;
   bankName?: string;
   // Investment specific fields
+  status?: 'active' | 'inactive';
   platform?: string;
   assetType?: string;
   units?: number;
