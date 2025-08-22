@@ -311,11 +311,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                               isActive={pathname.startsWith(item.href)}
                               tooltip={item.label}
                           >
-                              <div className="flex items-center gap-2">
-                                  <item.icon />
-                                  <span>{item.label}</span>
-                              </div>
-                              <ChevronRight className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-90" />
+                            <Link href={item.href} className="flex items-center gap-2 w-full">
+                                <item.icon />
+                                <span>{item.label}</span>
+                            </Link>
+                            <ChevronRight className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-90" />
                           </SidebarMenuButton>
                       </CollapsibleTrigger>
                   </SidebarMenuItem>
