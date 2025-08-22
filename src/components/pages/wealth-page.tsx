@@ -36,7 +36,7 @@ export function WealthPage() {
       .filter((a) => a.type === 'Bank Account')
       .reduce((acc, a) => acc + a.value, 0);
     const totalInvestments = assets
-      .filter((a) => a.type === 'Investment')
+      .filter((a) => a.type === 'Investment' && a.status === 'active')
       .reduce((acc, a) => acc + a.value, 0);
     const totalOtherAssets = assets
       .filter((a) => a.type === 'Other')
