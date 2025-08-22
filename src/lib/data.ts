@@ -297,3 +297,7 @@ export let assets: Asset[] = [
   { name: 'Primary Residence', value: 450000, type: 'Other' },
   { name: 'Vehicle', value: 20000, type: 'Other' },
 ];
+
+export function updateAssets(newAssets: Asset[]) {
+  assets = newAssets;
+}
