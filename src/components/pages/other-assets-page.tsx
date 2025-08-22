@@ -51,6 +51,7 @@ import { Badge } from '../ui/badge';
 const assetSchema = z.object({
   name: z.string().min(2, 'Name is required.'),
   value: z.coerce.number().min(0, 'Value must be a non-negative number.'),
+  type: z.literal('Other').default('Other'),
 });
 
 type AssetFormData = z.infer<typeof assetSchema>;
@@ -66,6 +67,11 @@ export function OtherAssetsPage() {
 
   const form = useForm<AssetFormData>({
     resolver: zodResolver(assetSchema),
+    defaultValues: {
+      name: '',
+      value: 0,
+      type: 'Other',
+    }
   });
 
   const { otherAssets, totalValue } = useMemo(() => {
@@ -81,7 +87,7 @@ export function OtherAssetsPage() {
 
   const openAddDialog = () => {
     setSelectedAsset(null);
-    form.reset({ name: '', value: 0 });
+    form.reset({ name: '', value: 0, type: 'Other' });
     setIsDialogOpen(true);
   };
 
@@ -90,6 +96,7 @@ export function OtherAssetsPage() {
     form.reset({
       name: asset.name,
       value: asset.value,
+      type: 'Other',
     });
     setIsDialogOpen(true);
   };
@@ -211,6 +218,19 @@ export function OtherAssetsPage() {
                     <FormLabel>Asset Name</FormLabel>
                     <FormControl>
                       <Input placeholder="e.g., Primary Residence" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Asset Type</FormLabel>
+                    <FormControl>
+                      <Input disabled {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
