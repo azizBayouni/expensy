@@ -28,6 +28,7 @@ import {
   Plane,
   LineChart,
   Target,
+  Gem,
 } from 'lucide-react';
 import { Logo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -79,6 +80,11 @@ const navItems = [
     href: '/reports',
     label: 'Reports',
     icon: LineChart,
+  },
+  {
+    href: '/wealth',
+    label: 'Wealth',
+    icon: Gem,
   },
   {
     href: '/categories',

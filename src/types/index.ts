@@ -69,3 +69,9 @@ export type Budget = {
   period: 'monthly' | 'yearly';
   startDate: string;
 };
+
+export type Asset = {
+  name: string;
+  value: number;
+  type: 'Bank Account' | 'Investment' | 'Other';
+};

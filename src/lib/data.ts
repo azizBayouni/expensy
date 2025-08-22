@@ -1,5 +1,5 @@
 
-import type { Transaction, Category, Debt, Event, Wallet, Budget } from '@/types';
+import type { Transaction, Category, Debt, Event, Wallet, Budget, Asset } from '@/types';
 import {
   Briefcase,
   Car,
@@ -287,3 +287,9 @@ export let budgets: Budget[] = [
 export function updateBudgets(newBudgets: Budget[]) {
     budgets = newBudgets;
 }
+
+export let assets: Asset[] = [
+  { name: 'Total Bank Balance', value: 30500, type: 'Bank Account' },
+  { name: 'Total Investments', value: 1224707.03, type: 'Investment' },
+  { name: 'Total Other Assets', value: 170000, type: 'Other' },
+];
