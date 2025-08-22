@@ -47,11 +47,18 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Badge } from '../ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const assetSchema = z.object({
   name: z.string().min(2, 'Name is required.'),
   value: z.coerce.number().min(0, 'Value must be a non-negative number.'),
-  type: z.literal('Other').default('Other'),
+  type: z.enum(['Bank Account', 'Investment', 'Other']),
 });
 
 type AssetFormData = z.infer<typeof assetSchema>;
@@ -96,7 +103,7 @@ export function OtherAssetsPage() {
     form.reset({
       name: asset.name,
       value: asset.value,
-      type: 'Other',
+      type: asset.type,
     });
     setIsDialogOpen(true);
   };
@@ -118,11 +125,11 @@ export function OtherAssetsPage() {
 
   const handleFormSubmit = (data: AssetFormData) => {
     if (selectedAsset) {
-      const updatedAsset: Asset = { ...selectedAsset, ...data, type: 'Other' };
+      const updatedAsset: Asset = { ...selectedAsset, ...data };
       saveAssets(assets.map((a) => (a.name === selectedAsset.name ? updatedAsset : a)));
       toast({ title: 'Success', description: 'Asset updated successfully.' });
     } else {
-      const newAsset: Asset = { ...data, type: 'Other' };
+      const newAsset: Asset = { ...data };
       saveAssets([...assets, newAsset]);
       toast({ title: 'Success', description: 'Asset created successfully.' });
     }
@@ -229,9 +236,18 @@ export function OtherAssetsPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Asset Type</FormLabel>
-                    <FormControl>
-                      <Input disabled {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select asset type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Other">Other</SelectItem>
+                        <SelectItem value="Bank Account">Bank Account</SelectItem>
+                        <SelectItem value="Investment">Investment</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
