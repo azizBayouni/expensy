@@ -103,7 +103,7 @@ export function WealthPage() {
               <p className="text-4xl font-bold">
                 {netWorth.toLocaleString('en-US', {
                   style: 'currency',
-                  currency: 'USD',
+                  currency: 'SAR',
                 })}
               </p>
             </CardContent>
@@ -129,7 +129,7 @@ export function WealthPage() {
                       <TableCell className="text-right">
                         {item.value.toLocaleString('en-US', {
                           style: 'currency',
-                          currency: 'USD',
+                          currency: 'SAR',
                         })}
                       </TableCell>
                     </TableRow>

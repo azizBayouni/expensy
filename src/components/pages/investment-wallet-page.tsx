@@ -130,7 +130,7 @@ export function InvestmentWalletPage() {
           <p className="text-3xl font-bold">
             {totalBalance.toLocaleString('en-US', {
               style: 'currency',
-              currency: 'USD',
+              currency: 'SAR',
             })}
           </p>
         </CardContent>
@@ -167,10 +167,10 @@ export function InvestmentWalletPage() {
                         </TableCell>
                         <TableCell className="text-right">{asset.units?.toLocaleString() || 'N/A'}</TableCell>
                         <TableCell className="text-right">
-                            {asset.pricePerUnit?.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) || 'N/A'}
+                            {asset.pricePerUnit?.toLocaleString('en-US', { style: 'currency', currency: 'SAR' }) || 'N/A'}
                         </TableCell>
                         <TableCell className="text-right font-semibold">
-                            {asset.value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                            {asset.value.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
                         </TableCell>
                         <TableCell className={cn("text-right", asset.growth && asset.growth > 0 ? 'text-green-500' : 'text-red-500')}>
                             {asset.growth?.toFixed(2) || 'N/A'}%
@@ -179,7 +179,7 @@ export function InvestmentWalletPage() {
                             {asset.maturityDate ? format(new Date(asset.maturityDate), 'dd MMM yyyy') : 'N/A'}
                         </TableCell>
                         <TableCell className="text-right">
-                             {asset.estimatedReturnValue?.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) || 'N/A'}
+                             {asset.estimatedReturnValue?.toLocaleString('en-US', { style: 'currency', currency: 'SAR' }) || 'N/A'}
                         </TableCell>
                     </TableRow>
                     ))}

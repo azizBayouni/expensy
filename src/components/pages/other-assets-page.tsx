@@ -158,7 +158,7 @@ export function OtherAssetsPage() {
           <p className="text-3xl font-bold">
             {totalValue.toLocaleString('en-US', {
               style: 'currency',
-              currency: 'USD',
+              currency: 'SAR',
             })}
           </p>
         </CardContent>
@@ -189,7 +189,7 @@ export function OtherAssetsPage() {
                         <TableCell className="text-right">
                         {asset.value.toLocaleString('en-US', {
                             style: 'currency',
-                            currency: 'USD',
+                            currency: 'SAR',
                         })}
                         </TableCell>
                     </TableRow>

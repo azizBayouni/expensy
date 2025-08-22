@@ -151,7 +151,7 @@ export function BankAccountsPage() {
           <p className="text-3xl font-bold">
             {totalBalance.toLocaleString('en-US', {
               style: 'currency',
-              currency: 'USD',
+              currency: 'SAR',
             })}
           </p>
         </CardContent>
@@ -180,7 +180,7 @@ export function BankAccountsPage() {
                         <TableCell className="text-right">
                         {account.value.toLocaleString('en-US', {
                             style: 'currency',
-                            currency: 'USD',
+                            currency: 'SAR',
                         })}
                         </TableCell>
                     </TableRow>
