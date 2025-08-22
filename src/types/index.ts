@@ -73,7 +73,7 @@ export type Budget = {
 export type Asset = {
   name: string;
   value: number;
-  type: 'Bank Account' | 'Investment' | 'Other';
+  type: string;
   bankName?: string;
   // Investment specific fields
   platform?: string;

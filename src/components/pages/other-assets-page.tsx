@@ -47,18 +47,11 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Badge } from '../ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 const assetSchema = z.object({
   name: z.string().min(2, 'Name is required.'),
   value: z.coerce.number().min(0, 'Value must be a non-negative number.'),
-  type: z.enum(['Bank Account', 'Investment', 'Other']),
+  type: z.string().min(1, 'Type is required.'),
 });
 
 type AssetFormData = z.infer<typeof assetSchema>;
@@ -236,18 +229,9 @@ export function OtherAssetsPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Asset Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select asset type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Other">Other</SelectItem>
-                        <SelectItem value="Bank Account">Bank Account</SelectItem>
-                        <SelectItem value="Investment">Investment</SelectItem>
-                      </SelectContent>
-                    </Select>
+                     <FormControl>
+                      <Input placeholder="e.g., Real Estate, Vehicle" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
