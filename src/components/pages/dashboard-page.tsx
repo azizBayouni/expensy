@@ -269,7 +269,7 @@ export function DashboardPage() {
                     <TableCell>
                       <div className="font-medium">{transaction.description}</div>
                       <div className="text-sm text-muted-foreground">
-                        {new Date(transaction.date).toLocaleDateString()}
+                        {format(parseISO(transaction.date), 'PP')}
                       </div>
                     </TableCell>
                     <TableCell>
