@@ -36,7 +36,6 @@ export let transactions: Transaction[] = [
     date: '2024-07-01',
     wallet: 'Main Bank Account',
     category: 'Salary',
-    description: 'Monthly Salary',
   },
   {
     id: '2',
@@ -292,6 +291,9 @@ export let assets: Asset[] = [
   { name: 'Checking Account', value: 10000, type: 'Bank Account' },
   { name: 'Savings Account', value: 20000, type: 'Bank Account' },
   { name: 'Emergency Fund', value: 500, type: 'Bank Account' },
-  { name: 'Total Investments', value: 1224707.03, type: 'Investment' },
-  { name: 'Total Other Assets', value: 170000, type: 'Other' },
+  { name: '401(k)', value: 500000, type: 'Investment' },
+  { name: 'Brokerage Account', value: 25000, type: 'Investment' },
+  { name: 'Crypto Wallet', value: 7500, type: 'Investment' },
+  { name: 'Primary Residence', value: 450000, type: 'Other' },
+  { name: 'Vehicle', value: 20000, type: 'Other' },
 ];

@@ -46,10 +46,10 @@ export function WealthPage() {
     const netWorth = totalAssets - totalLiabilities;
 
     const chartData = [
-      { name: 'Total Investments', value: totalInvestments, fill: 'hsl(var(--chart-2))' },
-      { name: 'Total Other Assets', value: totalOtherAssets, fill: 'hsl(var(--chart-3))' },
-      { name: 'Total Bank Balance', value: totalBankBalance, fill: 'hsl(var(--chart-1))' },
-    ];
+      { name: 'Bank Accounts', value: totalBankBalance, fill: 'hsl(var(--chart-1))' },
+      { name: 'Investments', value: totalInvestments, fill: 'hsl(var(--chart-2))' },
+      { name: 'Other Assets', value: totalOtherAssets, fill: 'hsl(var(--chart-3))' },
+    ].filter(d => d.value > 0);
 
     return {
       totalBankBalance,
@@ -63,8 +63,8 @@ export function WealthPage() {
 
   const summaryData = [
     { metric: 'Total Bank Balance', value: totalBankBalance, href: '/wealth/bank-accounts' },
-    { metric: 'Total Investments', value: totalInvestments },
-    { metric: 'Total Other Assets', value: totalOtherAssets },
+    { metric: 'Total Investments', value: totalInvestments, href: '/wealth/investment-wallet' },
+    { metric: 'Total Other Assets', value: totalOtherAssets, href: '/wealth/other-assets' },
     { metric: 'Total Liabilities', value: totalLiabilities },
   ];
   

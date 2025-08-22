@@ -36,6 +36,8 @@ import {
   Gem,
   Landmark,
   ChevronRight,
+  CandlestickChart,
+  Home,
 } from 'lucide-react';
 import { Logo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -97,6 +99,16 @@ const navItems = [
             href: '/wealth/bank-accounts',
             label: 'Bank Accounts',
             icon: Landmark,
+        },
+        {
+            href: '/wealth/investment-wallet',
+            label: 'Investment Wallet',
+            icon: CandlestickChart,
+        },
+        {
+            href: '/wealth/other-assets',
+            label: 'Other Assets',
+            icon: Home,
         }
     ]
   },
@@ -330,7 +342,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                                       isActive={pathname === subItem.href}
                                       tooltip={subItem.label}
                                   >
-                                      <Link href={subItem.href}>
+                                      <Link href={subItem.href} className='flex items-center gap-2'>
+                                          <subItem.icon />
                                           <span>{subItem.label}</span>
                                       </Link>
                                   </SidebarMenuButton>
