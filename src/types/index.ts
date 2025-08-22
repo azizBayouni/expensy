@@ -75,4 +75,12 @@ export type Asset = {
   value: number;
   type: 'Bank Account' | 'Investment' | 'Other';
   bankName?: string;
+  // Investment specific fields
+  platform?: string;
+  assetType?: string;
+  units?: number;
+  pricePerUnit?: number;
+  growth?: number;
+  maturityDate?: string;
+  estimatedReturnValue?: number;
 };

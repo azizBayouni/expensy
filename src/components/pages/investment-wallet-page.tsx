@@ -21,7 +21,9 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 export function InvestmentWalletPage() {
   const router = useRouter();
@@ -70,19 +72,40 @@ export function InvestmentWalletPage() {
             <Table>
                 <TableHeader>
                     <TableRow>
-                    <TableHead>Asset Name</TableHead>
-                    <TableHead className="text-right">Value</TableHead>
+                        <TableHead>Platform</TableHead>
+                        <TableHead>Asset Name</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="text-right">Units</TableHead>
+                        <TableHead className="text-right">Price/Unit</TableHead>
+                        <TableHead className="text-right">Total Value</TableHead>
+                        <TableHead className="text-right">Growth (%)</TableHead>
+                        <TableHead>Maturity Date</TableHead>
+                        <TableHead className="text-right">Est. Return</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {investmentAssets.map((asset) => (
                     <TableRow key={asset.name}>
-                        <TableCell className="font-medium">{asset.name}</TableCell>
+                        <TableCell className="font-medium">{asset.platform || 'N/A'}</TableCell>
+                        <TableCell>{asset.name}</TableCell>
+                        <TableCell>
+                            <Badge variant="outline">{asset.assetType || 'N/A'}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">{asset.units?.toLocaleString() || 'N/A'}</TableCell>
                         <TableCell className="text-right">
-                        {asset.value.toLocaleString('en-US', {
-                            style: 'currency',
-                            currency: 'USD',
-                        })}
+                            {asset.pricePerUnit?.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) || 'N/A'}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">
+                            {asset.value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                        </TableCell>
+                        <TableCell className={cn("text-right", asset.growth && asset.growth > 0 ? 'text-green-500' : 'text-red-500')}>
+                            {asset.growth?.toFixed(2) || 'N/A'}%
+                        </TableCell>
+                        <TableCell>
+                            {asset.maturityDate ? format(new Date(asset.maturityDate), 'dd MMM yyyy') : 'N/A'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                             {asset.estimatedReturnValue?.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) || 'N/A'}
                         </TableCell>
                     </TableRow>
                     ))}

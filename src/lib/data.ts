@@ -291,9 +291,10 @@ export let assets: Asset[] = [
   { name: 'Checking Account', value: 10000, type: 'Bank Account', bankName: 'ABC Bank' },
   { name: 'Savings Account', value: 20000, type: 'Bank Account', bankName: 'XYZ Bank' },
   { name: 'Emergency Fund', value: 500, type: 'Bank Account', bankName: 'ABC Bank' },
-  { name: '401(k)', value: 500000, type: 'Investment' },
-  { name: 'Brokerage Account', value: 25000, type: 'Investment' },
-  { name: 'Crypto Wallet', value: 7500, type: 'Investment' },
+  { name: 'S&P 500 ETF', value: 150000, type: 'Investment', platform: 'Fidelity', assetType: 'Stock', units: 100, pricePerUnit: 1500, growth: 12.5, estimatedReturnValue: 168750 },
+  { name: 'Apple Inc.', value: 100000, type: 'Investment', platform: 'Fidelity', assetType: 'Stock', units: 50, pricePerUnit: 2000, growth: 8.2, estimatedReturnValue: 108200 },
+  { name: 'US Treasury Bond', value: 50000, type: 'Investment', platform: 'TreasuryDirect', assetType: 'Bond', units: 50, pricePerUnit: 1000, growth: 4.5, maturityDate: '2034-07-01', estimatedReturnValue: 52250 },
+  { name: 'Bitcoin', value: 7500, type: 'Investment', platform: 'Coinbase', assetType: 'Crypto', units: 0.1, pricePerUnit: 75000, growth: -5.1, estimatedReturnValue: 7117.5 },
   { name: 'Primary Residence', value: 450000, type: 'Other' },
   { name: 'Vehicle', value: 20000, type: 'Other' },
 ];
