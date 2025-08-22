@@ -71,6 +71,7 @@ export function BankAccountsPage() {
                 <TableHeader>
                     <TableRow>
                     <TableHead>Account Name</TableHead>
+                    <TableHead>Bank Name</TableHead>
                     <TableHead className="text-right">Balance</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -78,6 +79,7 @@ export function BankAccountsPage() {
                     {bankAccounts.map((account) => (
                     <TableRow key={account.name}>
                         <TableCell className="font-medium">{account.name}</TableCell>
+                        <TableCell>{account.bankName}</TableCell>
                         <TableCell className="text-right">
                         {account.value.toLocaleString('en-US', {
                             style: 'currency',

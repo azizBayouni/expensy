@@ -74,4 +74,5 @@ export type Asset = {
   name: string;
   value: number;
   type: 'Bank Account' | 'Investment' | 'Other';
+  bankName?: string;
 };
