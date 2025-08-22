@@ -289,7 +289,9 @@ export function updateBudgets(newBudgets: Budget[]) {
 }
 
 export let assets: Asset[] = [
-  { name: 'Total Bank Balance', value: 30500, type: 'Bank Account' },
+  { name: 'Checking Account', value: 10000, type: 'Bank Account' },
+  { name: 'Savings Account', value: 20000, type: 'Bank Account' },
+  { name: 'Emergency Fund', value: 500, type: 'Bank Account' },
   { name: 'Total Investments', value: 1224707.03, type: 'Investment' },
   { name: 'Total Other Assets', value: 170000, type: 'Other' },
 ];

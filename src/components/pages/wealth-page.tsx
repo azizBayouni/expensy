@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/table';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import Link from 'next/link';
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))'];
 
@@ -61,7 +62,7 @@ export function WealthPage() {
   }, []);
 
   const summaryData = [
-    { metric: 'Total Bank Balance', value: totalBankBalance },
+    { metric: 'Total Bank Balance', value: totalBankBalance, href: '/wealth/bank-accounts' },
     { metric: 'Total Investments', value: totalInvestments },
     { metric: 'Total Other Assets', value: totalOtherAssets },
     { metric: 'Total Liabilities', value: totalLiabilities },
@@ -116,7 +117,15 @@ export function WealthPage() {
                 <TableBody>
                   {summaryData.map((item) => (
                     <TableRow key={item.metric}>
-                      <TableCell className="font-medium">{item.metric}</TableCell>
+                      <TableCell className="font-medium">
+                        {item.href ? (
+                          <Link href={item.href} className="hover:underline">
+                            {item.metric}
+                          </Link>
+                        ) : (
+                          item.metric
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         {item.value.toLocaleString('en-US', {
                           style: 'currency',
