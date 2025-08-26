@@ -152,6 +152,18 @@ export function InvestmentWalletPage() {
         'Status': asset.status,
     }));
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+
+    // Format Growth column as percentage
+    const range = XLSX.utils.decode_range(worksheet['!ref']!);
+    for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+        const cell_address = {c:6, r:R}; // 6 is the index for 'Growth (%)' column
+        const cell_ref = XLSX.utils.encode_cell(cell_address);
+        if(worksheet[cell_ref]) {
+            worksheet[cell_ref].t = 'n';
+            worksheet[cell_ref].z = '0.00%';
+        }
+    }
+
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Investments");
     XLSX.writeFile(workbook, "investments_template.xlsx");
@@ -172,9 +184,12 @@ export function InvestmentWalletPage() {
             const workbook = XLSX.read(data, { type: 'array' });
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
-            const json = XLSX.utils.sheet_to_json(worksheet) as any[];
+            // Use { raw: false } for formatted text, but get raw for percentages
+            const json_raw = XLSX.utils.sheet_to_json(worksheet, { raw: true }) as any[];
+            const json_formatted = XLSX.utils.sheet_to_json(worksheet, { raw: false }) as any[];
 
-            const importedAssets = json.map((row: any): Asset => {
+            const importedAssets = json_formatted.map((row: any, index: number): Asset => {
+                const raw_row = json_raw[index];
                 const maturityDate = row['Maturity Date'];
                 let formattedMaturityDate: string | undefined = undefined;
 
@@ -190,6 +205,8 @@ export function InvestmentWalletPage() {
                     formattedMaturityDate = format(parsedDate, 'yyyy-MM-dd');
                   }
                 }
+                
+                const growthValue = raw_row['Growth (%)'];
 
                 return {
                     platform: row['Platform'],
@@ -198,7 +215,7 @@ export function InvestmentWalletPage() {
                     units: Number(row['Units']) || undefined,
                     pricePerUnit: Number(row['Price/Unit']) || undefined,
                     value: Number(row['Total Value']) || 0,
-                    growth: Number(row['Growth (%)']) || undefined,
+                    growth: typeof growthValue === 'number' ? growthValue * 100 : undefined,
                     maturityDate: formattedMaturityDate,
                     estimatedReturnValue: Number(row['Est. Return Value']) || undefined,
                     status: row['Status'] || 'active',
