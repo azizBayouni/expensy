@@ -148,8 +148,8 @@ export function InvestmentHistoryPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {inactiveInvestmentAssets.map((asset) => (
-                    <TableRow key={asset.name} onClick={() => openEditDialog(asset)} className="cursor-pointer">
+                    {inactiveInvestmentAssets.map((asset, index) => (
+                    <TableRow key={`${asset.name}-${index}`} onClick={() => openEditDialog(asset)} className="cursor-pointer">
                         <TableCell className="font-medium">{asset.platform || 'N/A'}</TableCell>
                         <TableCell>{asset.name}</TableCell>
                         <TableCell>
