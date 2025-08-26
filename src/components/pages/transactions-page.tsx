@@ -132,10 +132,9 @@ export function TransactionsPage() {
   const filteredTransactions = React.useMemo(() => transactions
     .filter((t) => {
       const searchTerm = search.toLowerCase();
-      return (
-        t.description.toLowerCase().includes(searchTerm) ||
-        t.category.toLowerCase().includes(searchTerm)
-      );
+      const descriptionMatch = t.description ? t.description.toLowerCase().includes(searchTerm) : false;
+      const categoryMatch = t.category ? t.category.toLowerCase().includes(searchTerm) : false;
+      return descriptionMatch || categoryMatch;
     })
     .filter((t) => categoryFilter.length === 0 || categoryFilter.includes(t.category))
     .filter((t) => walletFilter === 'all' || t.wallet === walletFilter)
