@@ -155,18 +155,10 @@ export function InvestmentWalletPage() {
                     if (isValid(date)) {
                         formattedMaturityDate = format(date, 'yyyy-MM-dd');
                     }
-                  } else if (typeof maturityDate === 'string') {
-                    // Handle date string `dd/mm/yyyy`
-                    const parsedDate = parse(maturityDate, 'dd/MM/yyyy', new Date());
-                    if (isValid(parsedDate)) {
-                      formattedMaturityDate = format(parsedDate, 'yyyy-MM-dd');
-                    } else {
-                        // Fallback for other potential string formats like yyyy-mm-dd
-                        const genericParsedDate = new Date(maturityDate);
-                        if(isValid(genericParsedDate)) {
-                            formattedMaturityDate = format(genericParsedDate, 'yyyy-MM-dd');
-                        }
-                    }
+                  } else if (typeof maturityDate === 'string' && isValid(new Date(maturityDate))) {
+                    // Handle date string `dd/mm/yyyy` and other standard formats
+                    const parsedDate = new Date(maturityDate);
+                    formattedMaturityDate = format(parsedDate, 'yyyy-MM-dd');
                   }
                 }
 
@@ -287,8 +279,8 @@ export function InvestmentWalletPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {investmentAssets.map((asset) => (
-                    <TableRow key={asset.name} onClick={() => openEditDialog(asset)} className="cursor-pointer">
+                    {investmentAssets.map((asset, index) => (
+                    <TableRow key={`${asset.name}-${index}`} onClick={() => openEditDialog(asset)} className="cursor-pointer">
                         <TableCell className="font-medium">{asset.platform || 'N/A'}</TableCell>
                         <TableCell>{asset.name}</TableCell>
                         <TableCell>
