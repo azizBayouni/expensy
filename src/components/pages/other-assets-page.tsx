@@ -342,6 +342,7 @@ export function OtherAssetsPage() {
                         <Cell key={`cell-${index}`} fill={entry.fill} />
                       ))}
                     </Pie>
+                    <Legend />
                   </PieChart>
                 </ResponsiveContainer>
               </ChartContainer>

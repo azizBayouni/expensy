@@ -327,6 +327,7 @@ export function BankAccountsPage() {
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
+                  <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </ChartContainer>
