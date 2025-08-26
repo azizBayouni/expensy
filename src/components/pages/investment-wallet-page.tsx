@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, PlusCircle, Upload } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { format, parse } from 'date-fns';
+import { format, parse, isValid } from 'date-fns';
 import type { Asset } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -153,14 +153,19 @@ export function InvestmentWalletPage() {
                     // Handle Excel serial date number
                     const excelEpoch = new Date(1899, 11, 30);
                     const date = new Date(excelEpoch.getTime() + maturityDate * 86400000);
-                    formattedMaturityDate = format(date, 'yyyy-MM-dd');
+                    if (isValid(date)) {
+                        formattedMaturityDate = format(date, 'yyyy-MM-dd');
+                    }
                   } else if (typeof maturityDate === 'string') {
                     // Handle date string
                     try {
                       formattedMaturityDate = format(parse(maturityDate, 'yyyy-MM-dd', new Date()), 'yyyy-MM-dd');
                     } catch {
                       // Try parsing other common formats if needed
-                       formattedMaturityDate = format(new Date(maturityDate), 'yyyy-MM-dd');
+                      const parsedDate = new Date(maturityDate);
+                      if (isValid(parsedDate)) {
+                          formattedMaturityDate = format(parsedDate, 'yyyy-MM-dd');
+                      }
                     }
                   }
                 }
