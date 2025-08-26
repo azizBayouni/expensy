@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { assets as initialAssets, updateAssets } from '@/lib/data';
 import {
@@ -20,10 +20,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Upload } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import type { Asset } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -32,6 +32,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -44,13 +45,18 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { InvestmentForm } from '../investment-form';
+import * as XLSX from 'xlsx';
+import { Label } from '../ui/label';
+import { Input } from '../ui/input';
 
 export function InvestmentHistoryPage() {
   const router = useRouter();
   const [assets, setAssets] = useState<Asset[]>(initialAssets);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
+  const [isBulkUpdateDialogOpen, setIsBulkUpdateDialogOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const { inactiveInvestmentAssets, totalValue } = useMemo(() => {
@@ -66,7 +72,7 @@ export function InvestmentHistoryPage() {
 
   const openEditDialog = (asset: Asset) => {
     setSelectedAsset(asset);
-    setIsDialogOpen(true);
+    setIsFormDialogOpen(true);
   };
   
   const openDeleteAlert = (asset: Asset) => {
@@ -80,7 +86,7 @@ export function InvestmentHistoryPage() {
       toast({ title: 'Success', description: 'Investment deleted successfully.' });
       setIsDeleteAlertOpen(false);
       setSelectedAsset(null);
-      setIsDialogOpen(false);
+      setIsFormDialogOpen(false);
     }
   };
 
@@ -89,10 +95,102 @@ export function InvestmentHistoryPage() {
       saveAssets(assets.map((a) => (a.name === selectedAsset.name ? data : a)));
       toast({ title: 'Success', description: 'Investment updated successfully.' });
     } else {
-      saveAssets([...assets, data]);
+       const newAsset: Asset = {
+        ...data,
+        type: 'Investment',
+      };
+      saveAssets([...assets, newAsset]);
       toast({ title: 'Success', description: 'Investment created successfully.' });
     }
-    setIsDialogOpen(false);
+    setIsFormDialogOpen(false);
+  };
+
+  const handleDownloadTemplate = () => {
+    const dataToExport = inactiveInvestmentAssets.map(asset => ({
+        'Platform': asset.platform,
+        'Asset Name': asset.name,
+        'Asset Type': asset.assetType,
+        'Units': asset.units,
+        'Price/Unit': asset.pricePerUnit,
+        'Total Value': asset.value,
+        'Growth (%)': asset.growth,
+        'Maturity Date': asset.maturityDate ? format(new Date(asset.maturityDate), 'yyyy-MM-dd') : '',
+        'Est. Return Value': asset.estimatedReturnValue,
+        'Status': asset.status,
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Investments");
+    XLSX.writeFile(workbook, "inactive_investments_template.xlsx");
+    toast({ title: 'Success', description: 'Template downloaded successfully.' });
+  };
+  
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No file selected.' });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json_raw = XLSX.utils.sheet_to_json(worksheet, { raw: true }) as any[];
+
+            const importedAssets = json_raw.map((row: any): Asset => {
+                const maturityDate = row['Maturity Date'];
+                let formattedMaturityDate: string | undefined = undefined;
+
+                if (maturityDate) {
+                  if (typeof maturityDate === 'number') {
+                    const excelEpoch = new Date(1899, 11, 30);
+                    const date = new Date(excelEpoch.getTime() + maturityDate * 86400000);
+                    if (isValid(date)) {
+                        formattedMaturityDate = format(date, 'yyyy-MM-dd');
+                    }
+                  } else if (typeof maturityDate === 'string' && isValid(new Date(maturityDate))) {
+                    const parsedDate = new Date(maturityDate);
+                    formattedMaturityDate = format(parsedDate, 'yyyy-MM-dd');
+                  }
+                }
+                
+                const growthValue = row['Growth (%)'];
+
+                return {
+                    platform: row['Platform'],
+                    name: row['Asset Name'],
+                    assetType: row['Asset Type'],
+                    units: Number(row['Units']) || undefined,
+                    pricePerUnit: Number(row['Price/Unit']) || undefined,
+                    value: Number(row['Total Value']) || 0,
+                    growth: typeof growthValue === 'number' ? growthValue * 100 : undefined,
+                    maturityDate: formattedMaturityDate,
+                    estimatedReturnValue: Number(row['Est. Return Value']) || undefined,
+                    status: 'inactive',
+                    type: 'Investment', 
+                };
+            }).filter(asset => asset.name);
+            
+            const activeAndOtherAssets = assets.filter(a => a.type !== 'Investment' || a.status !== 'inactive');
+            saveAssets([...activeAndOtherAssets, ...importedAssets]);
+
+            toast({ title: 'Success', description: 'Inactive investments updated successfully from file.' });
+            setIsBulkUpdateDialogOpen(false);
+        } catch (error) {
+            console.error("Failed to parse uploaded file", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to process the uploaded file. Please check the format.' });
+        } finally {
+             if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+             }
+        }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   return (
@@ -109,6 +207,32 @@ export function InvestmentHistoryPage() {
                 </p>
             </div>
         </div>
+         <Dialog open={isBulkUpdateDialogOpen} onOpenChange={setIsBulkUpdateDialogOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Bulk Update
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Bulk Update Inactive Investments</DialogTitle>
+                    <DialogDescription>
+                        Download the template, update it, and re-upload to bulk update your investments.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <Button onClick={handleDownloadTemplate} className="w-full">
+                        Download Template (.xlsx)
+                    </Button>
+                    <div className="space-y-2">
+                      <Label htmlFor="file-upload">Upload Template</Label>
+                      <Input id="file-upload" type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleFileUpload} />
+                      <p className="text-xs text-muted-foreground">Upload the edited Excel file to update your investments.</p>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
       </div>
       
       <Card>
@@ -163,7 +287,7 @@ export function InvestmentHistoryPage() {
                             {asset.value.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
                         </TableCell>
                         <TableCell className={cn("text-right", asset.growth && asset.growth > 0 ? 'text-green-500' : 'text-red-500')}>
-                            {asset.growth?.toFixed(2) || 'N/A'}%
+                            {asset.growth?.toFixed(2)}%
                         </TableCell>
                         <TableCell>
                             {asset.maturityDate ? format(new Date(asset.maturityDate), 'dd MMM yyyy') : 'N/A'}
@@ -184,7 +308,7 @@ export function InvestmentHistoryPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isFormDialogOpen} onOpenChange={setIsFormDialogOpen}>
         <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>{selectedAsset ? 'Edit Investment' : 'Add New Investment'}</DialogTitle>
@@ -195,7 +319,7 @@ export function InvestmentHistoryPage() {
             <InvestmentForm
                 asset={selectedAsset}
                 onSubmit={handleFormSubmit}
-                onCancel={() => setIsDialogOpen(false)}
+                onCancel={() => setIsFormDialogOpen(false)}
                 onDelete={() => selectedAsset && openDeleteAlert(selectedAsset)}
             />
         </DialogContent>
@@ -219,3 +343,5 @@ export function InvestmentHistoryPage() {
     </div>
   );
 }
+
+    

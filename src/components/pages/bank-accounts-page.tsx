@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { assets as initialAssets, updateAssets } from '@/lib/data';
 import {
@@ -20,7 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, PlusCircle } from 'lucide-react';
+import { ChevronLeft, PlusCircle, Upload } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,6 +33,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -46,6 +47,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import * as XLSX from 'xlsx';
+import { Label } from '../ui/label';
 
 const assetSchema = z.object({
   name: z.string().min(2, 'Name is required.'),
@@ -58,9 +61,11 @@ type AssetFormData = z.infer<typeof assetSchema>;
 export function BankAccountsPage() {
   const router = useRouter();
   const [assets, setAssets] = useState<Asset[]>(initialAssets);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
+  const [isBulkUpdateDialogOpen, setIsBulkUpdateDialogOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const form = useForm<AssetFormData>({
@@ -81,7 +86,7 @@ export function BankAccountsPage() {
   const openAddDialog = () => {
     setSelectedAsset(null);
     form.reset({ name: '', bankName: '', value: 0 });
-    setIsDialogOpen(true);
+    setIsFormDialogOpen(true);
   };
 
   const openEditDialog = (asset: Asset) => {
@@ -91,7 +96,7 @@ export function BankAccountsPage() {
       bankName: asset.bankName || '',
       value: asset.value,
     });
-    setIsDialogOpen(true);
+    setIsFormDialogOpen(true);
   };
 
   const openDeleteAlert = (asset: Asset) => {
@@ -105,7 +110,7 @@ export function BankAccountsPage() {
       toast({ title: 'Success', description: 'Bank account deleted successfully.' });
       setIsDeleteAlertOpen(false);
       setSelectedAsset(null);
-      setIsDialogOpen(false);
+      setIsFormDialogOpen(false);
     }
   };
 
@@ -119,7 +124,60 @@ export function BankAccountsPage() {
       saveAssets([...assets, newAsset]);
       toast({ title: 'Success', description: 'Account created successfully.' });
     }
-    setIsDialogOpen(false);
+    setIsFormDialogOpen(false);
+  };
+
+  const handleDownloadTemplate = () => {
+    const dataToExport = bankAccounts.map(asset => ({
+        'Account Name': asset.name,
+        'Bank Name': asset.bankName,
+        'Balance': asset.value,
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Bank Accounts");
+    XLSX.writeFile(workbook, "bank_accounts_template.xlsx");
+    toast({ title: 'Success', description: 'Template downloaded successfully.' });
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No file selected.' });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet, { raw: false }) as any[];
+
+            const importedAssets = json.map((row: any): Asset => ({
+                name: row['Account Name'],
+                bankName: row['Bank Name'],
+                value: Number(row['Balance']) || 0,
+                type: 'Bank Account',
+            })).filter(asset => asset.name);
+            
+            const otherAssets = assets.filter(a => a.type !== 'Bank Account');
+            saveAssets([...otherAssets, ...importedAssets]);
+
+            toast({ title: 'Success', description: 'Bank accounts updated successfully from file.' });
+            setIsBulkUpdateDialogOpen(false);
+        } catch (error) {
+            console.error("Failed to parse uploaded file", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to process the uploaded file. Please check the format.' });
+        } finally {
+             if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+             }
+        }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   return (
@@ -136,10 +194,38 @@ export function BankAccountsPage() {
                 </p>
             </div>
         </div>
-        <Button onClick={openAddDialog}>
-            <PlusCircle className="w-4 h-4 mr-2" />
-            Add Bank Account
-        </Button>
+         <div className="flex items-center gap-2">
+            <Dialog open={isBulkUpdateDialogOpen} onOpenChange={setIsBulkUpdateDialogOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline" size="icon">
+                        <Upload className="w-4 h-4" />
+                        <span className="sr-only">Bulk Update</span>
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Bulk Update Bank Accounts</DialogTitle>
+                        <DialogDescription>
+                            Download the template, update it, and re-upload to bulk update your accounts.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <Button onClick={handleDownloadTemplate} className="w-full">
+                            Download Template (.xlsx)
+                        </Button>
+                        <div className="space-y-2">
+                          <Label htmlFor="file-upload">Upload Template</Label>
+                          <Input id="file-upload" type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleFileUpload} />
+                          <p className="text-xs text-muted-foreground">Upload the edited Excel file to update your accounts.</p>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+            <Button onClick={openAddDialog}>
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Add Bank Account
+            </Button>
+        </div>
       </div>
       
       <Card>
@@ -173,8 +259,8 @@ export function BankAccountsPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {bankAccounts.map((account) => (
-                    <TableRow key={account.name} onClick={() => openEditDialog(account)} className="cursor-pointer">
+                    {bankAccounts.map((account, index) => (
+                    <TableRow key={`${account.name}-${index}`} onClick={() => openEditDialog(account)} className="cursor-pointer">
                         <TableCell className="font-medium">{account.name}</TableCell>
                         <TableCell>{account.bankName}</TableCell>
                         <TableCell className="text-right">
@@ -191,7 +277,7 @@ export function BankAccountsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isFormDialogOpen} onOpenChange={setIsFormDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{selectedAsset ? 'Edit Account' : 'Add New Account'}</DialogTitle>
@@ -244,7 +330,7 @@ export function BankAccountsPage() {
                 {selectedAsset && (
                     <Button type="button" variant="destructive" className="mr-auto" onClick={() => openDeleteAlert(selectedAsset)}>Delete</Button>
                 )}
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => setIsFormDialogOpen(false)}>Cancel</Button>
                 <Button type="submit">{selectedAsset ? 'Save Changes' : 'Create Account'}</Button>
               </DialogFooter>
             </form>
@@ -269,3 +355,5 @@ export function BankAccountsPage() {
     </div>
   );
 }
+
+    
