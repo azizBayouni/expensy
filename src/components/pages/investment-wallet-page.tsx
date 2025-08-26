@@ -143,11 +143,12 @@ export function InvestmentWalletPage() {
             const worksheet = workbook.Sheets[sheetName];
             const json = XLSX.utils.sheet_to_json(worksheet) as any[];
 
-            const updatedAssets = json.map((row: any) => {
+            const updatedOrNewAssets = json.map((row: any): Asset => {
                 const existingAsset = assets.find(a => a.name === row['Asset Name']) || {};
                 
                 const maturityDate = row['Maturity Date'];
                 let formattedMaturityDate: string | undefined = undefined;
+
                 if (maturityDate) {
                   if (typeof maturityDate === 'number') {
                     // Handle Excel serial date number
@@ -157,15 +158,16 @@ export function InvestmentWalletPage() {
                         formattedMaturityDate = format(date, 'yyyy-MM-dd');
                     }
                   } else if (typeof maturityDate === 'string') {
-                    // Handle date string
-                    try {
-                      formattedMaturityDate = format(parse(maturityDate, 'yyyy-MM-dd', new Date()), 'yyyy-MM-dd');
-                    } catch {
-                      // Try parsing other common formats if needed
-                      const parsedDate = new Date(maturityDate);
-                      if (isValid(parsedDate)) {
-                          formattedMaturityDate = format(parsedDate, 'yyyy-MM-dd');
-                      }
+                    // Handle date string `dd/mm/yyyy`
+                    const parsedDate = parse(maturityDate, 'dd/MM/yyyy', new Date());
+                    if (isValid(parsedDate)) {
+                      formattedMaturityDate = format(parsedDate, 'yyyy-MM-dd');
+                    } else {
+                        // Fallback for other potential string formats like yyyy-mm-dd
+                        const genericParsedDate = new Date(maturityDate);
+                        if(isValid(genericParsedDate)) {
+                            formattedMaturityDate = format(genericParsedDate, 'yyyy-MM-dd');
+                        }
                     }
                   }
                 }
@@ -175,23 +177,26 @@ export function InvestmentWalletPage() {
                     platform: row['Platform'],
                     name: row['Asset Name'],
                     assetType: row['Asset Type'],
-                    units: Number(row['Units']),
-                    pricePerUnit: Number(row['Price/Unit']),
-                    value: Number(row['Total Value']),
-                    growth: Number(row['Growth (%)']),
+                    units: Number(row['Units']) || undefined,
+                    pricePerUnit: Number(row['Price/Unit']) || undefined,
+                    value: Number(row['Total Value']) || 0,
+                    growth: Number(row['Growth (%)']) || undefined,
                     maturityDate: formattedMaturityDate,
-                    estimatedReturnValue: Number(row['Est. Return Value']),
-                    status: row['Status'],
+                    estimatedReturnValue: Number(row['Est. Return Value']) || undefined,
+                    status: row['Status'] || 'active',
                     type: 'Investment', // Ensure type is set
                 };
-            });
-            
-            // This simple replacement logic can be improved to merge/update
-            // For now, we replace assets that were in the sheet.
-            const newAssetState = assets.map(asset => {
-              const updated = updatedAssets.find(u => u.name === asset.name);
-              return updated || asset;
-            });
+            }).filter(asset => asset.name); // Filter out any rows that might be missing an asset name
+
+            // Create a map of updated assets for quick lookup
+            const updatedAssetsMap = new Map(updatedOrNewAssets.map(asset => [asset.name, asset]));
+
+            // Create the new state by iterating over the updated assets map
+            const newAssetState = assets
+                // Remove assets that are in the updated map (they will be replaced)
+                .filter(asset => !updatedAssetsMap.has(asset.name))
+                // Add all the updated assets
+                .concat(Array.from(updatedAssetsMap.values()));
             
             saveAssets(newAssetState);
             toast({ title: 'Success', description: 'Investments updated successfully from file.' });
