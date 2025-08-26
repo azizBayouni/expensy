@@ -75,7 +75,7 @@ export function OtherAssetsPage() {
   });
 
   const { otherAssets, totalValue } = useMemo(() => {
-    const accounts = assets.filter((a) => a.type === 'Other');
+    const accounts = assets.filter((a) => a.type !== 'Bank Account' && a.type !== 'Investment');
     const total = accounts.reduce((acc, a) => acc + a.value, 0);
     return { otherAssets: accounts, totalValue: total };
   }, [assets]);
