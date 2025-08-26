@@ -143,9 +143,7 @@ export function InvestmentWalletPage() {
             const worksheet = workbook.Sheets[sheetName];
             const json = XLSX.utils.sheet_to_json(worksheet) as any[];
 
-            const updatedOrNewAssets = json.map((row: any): Asset => {
-                const existingAsset = assets.find(a => a.name === row['Asset Name']) || {};
-                
+            const importedAssets = json.map((row: any): Asset => {
                 const maturityDate = row['Maturity Date'];
                 let formattedMaturityDate: string | undefined = undefined;
 
@@ -173,7 +171,6 @@ export function InvestmentWalletPage() {
                 }
 
                 return {
-                    ...existingAsset,
                     platform: row['Platform'],
                     name: row['Asset Name'],
                     assetType: row['Asset Type'],
@@ -187,18 +184,9 @@ export function InvestmentWalletPage() {
                     type: 'Investment', // Ensure type is set
                 };
             }).filter(asset => asset.name); // Filter out any rows that might be missing an asset name
-
-            // Create a map of updated assets for quick lookup
-            const updatedAssetsMap = new Map(updatedOrNewAssets.map(asset => [asset.name, asset]));
-
-            // Create the new state by iterating over the updated assets map
-            const newAssetState = assets
-                // Remove assets that are in the updated map (they will be replaced)
-                .filter(asset => !updatedAssetsMap.has(asset.name))
-                // Add all the updated assets
-                .concat(Array.from(updatedAssetsMap.values()));
             
-            saveAssets(newAssetState);
+            // Overwrite existing assets with the imported assets
+            saveAssets(importedAssets);
             toast({ title: 'Success', description: 'Investments updated successfully from file.' });
             setIsBulkUpdateDialogOpen(false);
         } catch (error) {
