@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { assets as initialAssets, updateAssets } from '@/lib/data';
 import {
@@ -20,18 +20,20 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, PlusCircle } from 'lucide-react';
+import { ChevronLeft, PlusCircle, Upload } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import type { Asset } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -44,13 +46,18 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { InvestmentForm } from '../investment-form';
+import * as XLSX from 'xlsx';
+import { Label } from '../ui/label';
+import { Input } from '../ui/input';
 
 export function InvestmentWalletPage() {
   const router = useRouter();
   const [assets, setAssets] = useState<Asset[]>(initialAssets);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
+  const [isBulkUpdateDialogOpen, setIsBulkUpdateDialogOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const { investmentAssets, totalBalance } = useMemo(() => {
@@ -66,12 +73,12 @@ export function InvestmentWalletPage() {
   
   const openAddDialog = () => {
     setSelectedAsset(null);
-    setIsDialogOpen(true);
+    setIsFormDialogOpen(true);
   };
 
   const openEditDialog = (asset: Asset) => {
     setSelectedAsset(asset);
-    setIsDialogOpen(true);
+    setIsFormDialogOpen(true);
   };
   
   const openDeleteAlert = (asset: Asset) => {
@@ -85,7 +92,7 @@ export function InvestmentWalletPage() {
       toast({ title: 'Success', description: 'Investment deleted successfully.' });
       setIsDeleteAlertOpen(false);
       setSelectedAsset(null);
-      setIsDialogOpen(false);
+      setIsFormDialogOpen(false);
     }
   };
 
@@ -97,7 +104,103 @@ export function InvestmentWalletPage() {
       saveAssets([...assets, data]);
       toast({ title: 'Success', description: 'Investment created successfully.' });
     }
-    setIsDialogOpen(false);
+    setIsFormDialogOpen(false);
+  };
+  
+  const handleDownloadTemplate = () => {
+    const dataToExport = investmentAssets.map(asset => ({
+        'Platform': asset.platform,
+        'Asset Name': asset.name,
+        'Asset Type': asset.assetType,
+        'Units': asset.units,
+        'Price/Unit': asset.pricePerUnit,
+        'Total Value': asset.value,
+        'Growth (%)': asset.growth,
+        'Maturity Date': asset.maturityDate ? format(new Date(asset.maturityDate), 'yyyy-MM-dd') : '',
+        'Est. Return Value': asset.estimatedReturnValue,
+        'Status': asset.status,
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Investments");
+    XLSX.writeFile(workbook, "investments_template.xlsx");
+    toast({ title: 'Success', description: 'Template downloaded successfully.' });
+  };
+  
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No file selected.' });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+            const updatedAssets = json.map((row: any) => {
+                const existingAsset = assets.find(a => a.name === row['Asset Name']) || {};
+                
+                const maturityDate = row['Maturity Date'];
+                let formattedMaturityDate: string | undefined = undefined;
+                if (maturityDate) {
+                  if (typeof maturityDate === 'number') {
+                    // Handle Excel serial date number
+                    const excelEpoch = new Date(1899, 11, 30);
+                    const date = new Date(excelEpoch.getTime() + maturityDate * 86400000);
+                    formattedMaturityDate = format(date, 'yyyy-MM-dd');
+                  } else if (typeof maturityDate === 'string') {
+                    // Handle date string
+                    try {
+                      formattedMaturityDate = format(parse(maturityDate, 'yyyy-MM-dd', new Date()), 'yyyy-MM-dd');
+                    } catch {
+                      // Try parsing other common formats if needed
+                       formattedMaturityDate = format(new Date(maturityDate), 'yyyy-MM-dd');
+                    }
+                  }
+                }
+
+                return {
+                    ...existingAsset,
+                    platform: row['Platform'],
+                    name: row['Asset Name'],
+                    assetType: row['Asset Type'],
+                    units: Number(row['Units']),
+                    pricePerUnit: Number(row['Price/Unit']),
+                    value: Number(row['Total Value']),
+                    growth: Number(row['Growth (%)']),
+                    maturityDate: formattedMaturityDate,
+                    estimatedReturnValue: Number(row['Est. Return Value']),
+                    status: row['Status'],
+                    type: 'Investment', // Ensure type is set
+                };
+            });
+            
+            // This simple replacement logic can be improved to merge/update
+            // For now, we replace assets that were in the sheet.
+            const newAssetState = assets.map(asset => {
+              const updated = updatedAssets.find(u => u.name === asset.name);
+              return updated || asset;
+            });
+            
+            saveAssets(newAssetState);
+            toast({ title: 'Success', description: 'Investments updated successfully from file.' });
+            setIsBulkUpdateDialogOpen(false);
+        } catch (error) {
+            console.error("Failed to parse uploaded file", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to process the uploaded file. Please check the format.' });
+        } finally {
+             if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+             }
+        }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
 
@@ -115,10 +218,38 @@ export function InvestmentWalletPage() {
                 </p>
             </div>
         </div>
-        <Button onClick={openAddDialog}>
-            <PlusCircle className="w-4 h-4 mr-2" />
-            Add Investment
-        </Button>
+        <div className="flex items-center gap-2">
+            <Dialog open={isBulkUpdateDialogOpen} onOpenChange={setIsBulkUpdateDialogOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline" size="icon">
+                        <Upload className="w-4 h-4" />
+                        <span className="sr-only">Bulk Update</span>
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Bulk Update Investments</DialogTitle>
+                        <DialogDescription>
+                            Download the template, update it, and re-upload to bulk update your investments.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <Button onClick={handleDownloadTemplate} className="w-full">
+                            Download Template (.xlsx)
+                        </Button>
+                        <div className="space-y-2">
+                          <Label htmlFor="file-upload">Upload Template</Label>
+                          <Input id="file-upload" type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleFileUpload} />
+                          <p className="text-xs text-muted-foreground">Upload the edited Excel file to update your investments.</p>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+            <Button onClick={openAddDialog}>
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Add Investment
+            </Button>
+        </div>
       </div>
       
       <Card>
@@ -189,7 +320,7 @@ export function InvestmentWalletPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isFormDialogOpen} onOpenChange={setIsFormDialogOpen}>
         <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>{selectedAsset ? 'Edit Investment' : 'Add New Investment'}</DialogTitle>
@@ -200,7 +331,7 @@ export function InvestmentWalletPage() {
             <InvestmentForm
                 asset={selectedAsset}
                 onSubmit={handleFormSubmit}
-                onCancel={() => setIsDialogOpen(false)}
+                onCancel={() => setIsFormDialogOpen(false)}
                 onDelete={() => selectedAsset && openDeleteAlert(selectedAsset)}
             />
         </DialogContent>
