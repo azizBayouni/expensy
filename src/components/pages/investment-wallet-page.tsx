@@ -146,7 +146,7 @@ export function InvestmentWalletPage() {
         'Units': asset.units,
         'Price/Unit': asset.pricePerUnit,
         'Total Value': asset.value,
-        'Growth (%)': asset.growth,
+        'Growth (%)': asset.growth ? asset.growth / 100 : undefined,
         'Maturity Date': asset.maturityDate ? format(new Date(asset.maturityDate), 'yyyy-MM-dd') : '',
         'Est. Return Value': asset.estimatedReturnValue,
         'Status': asset.status,
@@ -157,10 +157,9 @@ export function InvestmentWalletPage() {
     const range = XLSX.utils.decode_range(worksheet['!ref']!);
     for (let R = range.s.r + 1; R <= range.e.r; ++R) {
         const cell_address = {c:6, r:R}; // 6 is the index for 'Growth (%)' column
-        const cell_ref = XLSX.utils.encode_cell(cell_address);
-        if(worksheet[cell_ref]) {
-            worksheet[cell_ref].t = 'n';
-            worksheet[cell_ref].z = '0.00%';
+        if(worksheet[cell_address]) {
+            worksheet[cell_address].t = 'n';
+            worksheet[cell_address].z = '0.00%';
         }
     }
 
@@ -184,12 +183,9 @@ export function InvestmentWalletPage() {
             const workbook = XLSX.read(data, { type: 'array' });
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
-            // Use { raw: false } for formatted text, but get raw for percentages
             const json_raw = XLSX.utils.sheet_to_json(worksheet, { raw: true }) as any[];
-            const json_formatted = XLSX.utils.sheet_to_json(worksheet, { raw: false }) as any[];
 
-            const importedAssets = json_formatted.map((row: any, index: number): Asset => {
-                const raw_row = json_raw[index];
+            const importedAssets = json_raw.map((row: any, index: number): Asset => {
                 const maturityDate = row['Maturity Date'];
                 let formattedMaturityDate: string | undefined = undefined;
 
@@ -206,7 +202,7 @@ export function InvestmentWalletPage() {
                   }
                 }
                 
-                const growthValue = raw_row['Growth (%)'];
+                const growthValue = row['Growth (%)'];
 
                 return {
                     platform: row['Platform'],
@@ -223,7 +219,10 @@ export function InvestmentWalletPage() {
                 };
             }).filter(asset => asset.name);
             
-            saveAssets(importedAssets);
+            const newAssets = assets.filter(a => a.type !== 'Investment');
+            newAssets.push(...importedAssets);
+            saveAssets(newAssets);
+
             toast({ title: 'Success', description: 'Investments updated successfully from file.' });
             setIsBulkUpdateDialogOpen(false);
         } catch (error) {
@@ -465,3 +464,5 @@ export function InvestmentWalletPage() {
     </div>
   );
 }
+
+    
