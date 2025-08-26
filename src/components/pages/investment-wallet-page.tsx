@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, PlusCircle, Upload } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { format, parse, isValid } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import type { Asset } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -49,6 +49,16 @@ import { InvestmentForm } from '../investment-form';
 import * as XLSX from 'xlsx';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+
+const CHART_COLORS = [
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+];
 
 export function InvestmentWalletPage() {
   const router = useRouter();
@@ -60,10 +70,26 @@ export function InvestmentWalletPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const { investmentAssets, totalBalance } = useMemo(() => {
+  const { investmentAssets, totalBalance, assetTypeChartData } = useMemo(() => {
     const accounts = assets.filter((a) => a.type === 'Investment' && a.status === 'active');
     const total = accounts.reduce((acc, a) => acc + a.value, 0);
-    return { investmentAssets: accounts, totalBalance: total };
+    
+    const assetsByType = accounts.reduce((acc, asset) => {
+        const type = asset.assetType || 'Uncategorized';
+        if (!acc[type]) {
+            acc[type] = 0;
+        }
+        acc[type] += asset.value;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const chartData = Object.entries(assetsByType).map(([name, value], index) => ({
+        name,
+        value,
+        fill: CHART_COLORS[index % CHART_COLORS.length],
+    }));
+
+    return { investmentAssets: accounts, totalBalance: total, assetTypeChartData: chartData };
   }, [assets]);
   
   const saveAssets = (newAssets: Asset[]) => {
@@ -149,14 +175,12 @@ export function InvestmentWalletPage() {
 
                 if (maturityDate) {
                   if (typeof maturityDate === 'number') {
-                    // Handle Excel serial date number
                     const excelEpoch = new Date(1899, 11, 30);
                     const date = new Date(excelEpoch.getTime() + maturityDate * 86400000);
                     if (isValid(date)) {
                         formattedMaturityDate = format(date, 'yyyy-MM-dd');
                     }
                   } else if (typeof maturityDate === 'string' && isValid(new Date(maturityDate))) {
-                    // Handle date string `dd/mm/yyyy` and other standard formats
                     const parsedDate = new Date(maturityDate);
                     formattedMaturityDate = format(parsedDate, 'yyyy-MM-dd');
                   }
@@ -173,11 +197,10 @@ export function InvestmentWalletPage() {
                     maturityDate: formattedMaturityDate,
                     estimatedReturnValue: Number(row['Est. Return Value']) || undefined,
                     status: row['Status'] || 'active',
-                    type: 'Investment', // Ensure type is set
+                    type: 'Investment', 
                 };
-            }).filter(asset => asset.name); // Filter out any rows that might be missing an asset name
+            }).filter(asset => asset.name);
             
-            // Overwrite existing assets with the imported assets
             saveAssets(importedAssets);
             toast({ title: 'Success', description: 'Investments updated successfully from file.' });
             setIsBulkUpdateDialogOpen(false);
@@ -191,6 +214,21 @@ export function InvestmentWalletPage() {
         }
     };
     reader.readAsArrayBuffer(file);
+  };
+  
+    const chartConfig = {
+      value: {
+        label: "Value",
+      },
+      ...Object.fromEntries(
+        assetTypeChartData.map((item) => [
+          item.name,
+          {
+            label: item.name,
+            color: item.fill,
+          },
+        ])
+      )
   };
 
 
@@ -242,20 +280,54 @@ export function InvestmentWalletPage() {
         </div>
       </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Total Investment Value</CardTitle>
-          <CardDescription>The sum of all your active investment assets.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-bold">
-            {totalBalance.toLocaleString('en-US', {
-              style: 'currency',
-              currency: 'SAR',
-            })}
-          </p>
-        </CardContent>
-      </Card>
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+            <CardHeader>
+            <CardTitle>Total Investment Value</CardTitle>
+            <CardDescription>The sum of all your active investment assets.</CardDescription>
+            </CardHeader>
+            <CardContent>
+            <p className="text-3xl font-bold">
+                {totalBalance.toLocaleString('en-US', {
+                style: 'currency',
+                currency: 'SAR',
+                })}
+            </p>
+            </CardContent>
+        </Card>
+         <Card>
+            <CardHeader>
+              <CardTitle>Allocation by Type</CardTitle>
+              <CardDescription>A breakdown of your investments by asset type.</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[200px]">
+              <ChartContainer config={chartConfig} className="w-full h-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Tooltip
+                        content={<ChartTooltipContent nameKey="name" hideLabel />}
+                    />
+                    <Pie
+                      data={assetTypeChartData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      labelLine={false}
+                      label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                    >
+                      {assetTypeChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+      </div>
 
       <Card>
         <CardHeader>
