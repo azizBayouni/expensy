@@ -49,6 +49,16 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import * as XLSX from 'xlsx';
 import { Label } from '../ui/label';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+
+const CHART_COLORS = [
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+];
 
 const assetSchema = z.object({
   name: z.string().min(2, 'Name is required.'),
@@ -72,10 +82,17 @@ export function BankAccountsPage() {
     resolver: zodResolver(assetSchema),
   });
 
-  const { bankAccounts, totalBalance } = useMemo(() => {
+  const { bankAccounts, totalBalance, allocationChartData } = useMemo(() => {
     const accounts = assets.filter((a) => a.type === 'Bank Account');
     const total = accounts.reduce((acc, a) => acc + a.value, 0);
-    return { bankAccounts: accounts, totalBalance: total };
+
+    const chartData = accounts.map((account, index) => ({
+      name: account.name,
+      value: account.value,
+      fill: CHART_COLORS[index % CHART_COLORS.length],
+    }));
+
+    return { bankAccounts: accounts, totalBalance: total, allocationChartData: chartData };
   }, [assets]);
   
   const saveAssets = (newAssets: Asset[]) => {
@@ -179,6 +196,21 @@ export function BankAccountsPage() {
     };
     reader.readAsArrayBuffer(file);
   };
+  
+  const chartConfig = {
+      value: {
+        label: "Value",
+      },
+      ...Object.fromEntries(
+        allocationChartData.map((item) => [
+          item.name,
+          {
+            label: item.name,
+            color: item.fill,
+          },
+        ])
+      )
+  };
 
   return (
     <div className="space-y-6">
@@ -228,20 +260,53 @@ export function BankAccountsPage() {
         </div>
       </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Total Balance</CardTitle>
-          <CardDescription>The sum of all your bank accounts.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-bold">
-            {totalBalance.toLocaleString('en-US', {
-              style: 'currency',
-              currency: 'SAR',
-            })}
-          </p>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Total Balance</CardTitle>
+            <CardDescription>The sum of all your bank accounts.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">
+              {totalBalance.toLocaleString('en-US', {
+                style: 'currency',
+                currency: 'SAR',
+              })}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Account Allocation</CardTitle>
+            <CardDescription>A breakdown of your balances by account.</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[200px]">
+            <ChartContainer config={chartConfig} className="w-full h-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Tooltip
+                      content={<ChartTooltipContent nameKey="name" hideLabel />}
+                  />
+                  <Pie
+                    data={allocationChartData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius="50%"
+                    outerRadius="80%"
+                  >
+                    {allocationChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader>
@@ -355,5 +420,3 @@ export function BankAccountsPage() {
     </div>
   );
 }
-
-    

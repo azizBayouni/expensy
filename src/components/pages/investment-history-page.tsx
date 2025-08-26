@@ -48,6 +48,16 @@ import { InvestmentForm } from '../investment-form';
 import * as XLSX from 'xlsx';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+
+const CHART_COLORS = [
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+];
 
 export function InvestmentHistoryPage() {
   const router = useRouter();
@@ -59,10 +69,26 @@ export function InvestmentHistoryPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const { inactiveInvestmentAssets, totalValue } = useMemo(() => {
+  const { inactiveInvestmentAssets, totalValue, allocationChartData } = useMemo(() => {
     const accounts = assets.filter((a) => a.type === 'Investment' && a.status === 'inactive');
     const total = accounts.reduce((acc, a) => acc + a.value, 0);
-    return { inactiveInvestmentAssets: accounts, totalValue: total };
+
+    const assetsByType = accounts.reduce((acc, asset) => {
+        const type = asset.assetType || 'Uncategorized';
+        if (!acc[type]) {
+            acc[type] = 0;
+        }
+        acc[type] += asset.value;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const chartData = Object.entries(assetsByType).map(([name, value], index) => ({
+        name,
+        value,
+        fill: CHART_COLORS[index % CHART_COLORS.length],
+    }));
+
+    return { inactiveInvestmentAssets: accounts, totalValue: total, allocationChartData: chartData };
   }, [assets]);
   
   const saveAssets = (newAssets: Asset[]) => {
@@ -192,6 +218,21 @@ export function InvestmentHistoryPage() {
     };
     reader.readAsArrayBuffer(file);
   };
+  
+  const chartConfig = {
+      value: {
+        label: "Value",
+      },
+      ...Object.fromEntries(
+        allocationChartData.map((item) => [
+          item.name,
+          {
+            label: item.name,
+            color: item.fill,
+          },
+        ])
+      )
+  };
 
   return (
     <div className="space-y-6">
@@ -235,20 +276,53 @@ export function InvestmentHistoryPage() {
         </Dialog>
       </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Total Value of Inactive Investments</CardTitle>
-          <CardDescription>The sum of all your archived investment assets.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-bold">
-            {totalValue.toLocaleString('en-US', {
-              style: 'currency',
-              currency: 'SAR',
-            })}
-          </p>
-        </CardContent>
-      </Card>
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Total Value of Inactive Investments</CardTitle>
+            <CardDescription>The sum of all your archived investment assets.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">
+              {totalValue.toLocaleString('en-US', {
+                style: 'currency',
+                currency: 'SAR',
+              })}
+            </p>
+          </CardContent>
+        </Card>
+         <Card>
+            <CardHeader>
+              <CardTitle>Allocation by Type</CardTitle>
+              <CardDescription>A breakdown of your historic investments by asset type.</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[200px]">
+              <ChartContainer config={chartConfig} className="w-full h-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Tooltip
+                        content={<ChartTooltipContent nameKey="name" hideLabel />}
+                    />
+                    <Pie
+                      data={allocationChartData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius="50%"
+                      outerRadius="80%"
+                    >
+                      {allocationChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+      </div>
 
       <Card>
         <CardHeader>
@@ -343,5 +417,3 @@ export function InvestmentHistoryPage() {
     </div>
   );
 }
-
-    
