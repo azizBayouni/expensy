@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  expensy:
+    # This tells Docker to build the image from the Dockerfile
+    # in the current directory.
+    build: .
+    container_name: expensy
+    restart: always
+    ports:
+      # Maps port 9002 on your Unraid server to port 3000 inside the container
+      # You can change 9002 to any other unused port.
+      - "9002:3000"
+    environment:
+      # Timezone for the container
+      - TZ=Etc/UTC
+      # You can add other environment variables here if needed
+      # - EXAMPLE_VARIABLE=example_value
+volumes:
+  # This creates a named volume to persist application data.
+  # For a Next.js app, this might not be strictly necessary unless
+  # you are storing data on the filesystem that needs to persist
+  # between container restarts.
+  - expensy-data:/app/.next/cache
+
+volumes:
+  expensy-data:
+    driver: local

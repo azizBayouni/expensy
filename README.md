@@ -4,80 +4,83 @@ This is a NextJS starter in Firebase Studio.
 
 To get started, take a look at src/app/page.tsx.
 
-## Docker Deployment for Unraid (Professional Workflow)
+## Docker Deployment for Unraid (Self-Hosted)
 
-This application is configured for professional, automated deployment using Docker, suitable for a server environment like Unraid. The recommended workflow involves using a CI/CD pipeline (like GitHub Actions) to automatically build the Docker image and push it to a registry (like Docker Hub). Unraid can then pull the latest image directly from the registry.
+This application is configured for easy, self-hosted deployment using Docker Compose, which is ideal for a server environment like Unraid. Below is a ready-to-use `docker-compose.yml` file for deploying Expensy.
 
-This setup allows you to manage deployments and updates entirely from the Unraid UI after the initial configuration.
+For more details on Unraid and Docker, see the official [Unraid Docker Guide](https://docs.unraid.net/unraid-os/manual/docker-management/).
 
-### 1. Prerequisites
+### 1. Docker Compose Setup
 
-*   A [GitHub](https://github.com/) account for your project repository.
-*   A [Docker Hub](https://hub.docker.com/) account to store your built images.
+Copy the `docker-compose.yml` file from this repository to your Unraid server (e.g., to a new `expensy` directory within your `/mnt/user/appdata/` share).
 
-### 2. Automated Builds with GitHub Actions
+Alternatively, you can create the file yourself with the following content:
 
-You will need to set up a GitHub Actions workflow to build and publish your Docker image.
+```yaml
+version: '3.8'
 
-1.  **Add Docker Hub Credentials to GitHub Secrets:**
-    *   In your GitHub repository, go to `Settings` > `Secrets and variables` > `Actions`.
-    *   Create a new repository secret named `DOCKERHUB_USERNAME` with your Docker Hub username.
-    *   Create another new repository secret named `DOCKERHUB_TOKEN` with a Docker Hub access token. You can generate one in your Docker Hub account settings.
+services:
+  expensy:
+    # This tells Docker to build the image from the Dockerfile
+    # in the current directory.
+    build: .
+    container_name: expensy
+    restart: always
+    ports:
+      # Maps port 9002 on your Unraid server to port 3000 inside the container
+      # You can change 9002 to any other unused port.
+      - "9002:3000"
+    environment:
+      # Timezone for the container
+      - TZ=Etc/UTC
+      # You can add other environment variables here if needed
+      # - EXAMPLE_VARIABLE=example_value
+volumes:
+  # This creates a named volume to persist application data.
+  # For a Next.js app, this might not be strictly necessary unless
+  # you are storing data on the filesystem that needs to persist
+  # between container restarts.
+  - expensy-data:/app/.next/cache
 
-2.  **Create the Workflow File:**
-    *   Create a directory path `.github/workflows/` in your project's root.
-    *   Inside that directory, create a new file named `docker-publish.yml`.
-    *   Add the following content to `docker-publish.yml`. Remember to replace `your-dockerhub-username/expensy` with your actual Docker Hub username and desired image name.
+volumes:
+  expensy-data:
+    driver: local
 
-    ```yaml
-    name: Docker Image CI
+```
 
-    on:
-      push:
-        branches: [ "main" ] # Or your primary branch
+### 2. Launching the Container
 
-    jobs:
-      build:
-        runs-on: ubuntu-latest
-        steps:
-        - uses: actions/checkout@v3
-        - name: Set up Docker Buildx
-          uses: docker/setup-buildx-action@v2
-        - name: Login to Docker Hub
-          uses: docker/login-action@v2
-          with:
-            username: ${{ secrets.DOCKERHUB_USERNAME }}
-            password: ${{ secrets.DOCKERHUB_TOKEN }}
-        - name: Build and push
-          uses: docker/build-push-action@v4
-          with:
-            context: .
-            file: ./Dockerfile
-            push: true
-            tags: your-dockerhub-username/expensy:latest
+1.  **Clone the Repository**: First, you need to get the application code onto your Unraid server. You can do this by cloning your project's repository. If you don't have the `git` command available, you can install it via the "Nerd Tools" plugin from the Community Applications catalog.
+    ```bash
+    git clone https://github.com/your-username/your-repository.git /mnt/user/appdata/expensy
+    ```
+    Navigate into the new directory:
+    ```bash
+    cd /mnt/user/appdata/expensy
     ```
 
-Now, whenever you push changes to your `main` branch, GitHub Actions will automatically build the Docker image and push it to your Docker Hub repository.
+2.  **Start the Container**: Run the following command to build the image and start the container in the background.
+    ```bash
+    docker-compose up --build -d
+    ```
+    *   `--build` tells Docker Compose to build the image from your `Dockerfile` the first time you run it.
+    *   `-d` runs the container in detached mode.
 
-### 3. Unraid Deployment from the UI
+3.  **Access Your App**: You can now access your Expensy application in your browser at `http://<your-unraid-ip>:9002`.
 
-1.  **Install Community Applications (if you haven't already):** This plugin makes finding and managing Docker containers easier.
-2.  **Add Your Application:**
-    *   Navigate to the **Apps** tab in your Unraid web UI.
-    *   Search for your application by the Docker Hub repository name (e.g., `your-dockerhub-username/expensy`).
-    *   If it doesn't appear (it won't initially as it's not a standard template), you can add it manually. Go to the **Docker** tab.
-    *   Click **Add Container**.
-    *   Set the **Name** for your container (e.g., `Expensy`).
-    *   For the **Repository**, enter the full name of your image on Docker Hub (e.g., `your-dockerhub-username/expensy:latest`).
-    *   Set the **WebUI Port**: Map the container's port `3000` to a host port of your choice (e.g., `8080`). You will access your app via `http://<your-unraid-ip>:8080`.
-    *   You can add any required environment variables under "Advanced View".
-    *   Click **Apply** to pull the image and start the container.
+### 3. Updating the Application
 
-### 4. Updating the Application
+When you make changes to your application and push them to your repository, you can update your running container with these steps:
 
-To update your application to the latest version after pushing changes to GitHub:
+1.  **Pull the latest changes** from your repository:
+    ```bash
+    cd /mnt/user/appdata/expensy
+    git pull
+    ```
 
-1.  Go to the **Docker** tab in Unraid.
-2.  Find your `Expensy` container.
-3.  Click on it and select **Check for Updates**.
-4.  If an update is found, Unraid will prompt you to apply it. This pulls the new image from Docker Hub and restarts the container with the latest version of your app.
+2.  **Rebuild and restart the container** with the updated code:
+    ```bash
+    docker-compose up --build -d
+    ```
+
+Docker Compose will intelligently rebuild the image and restart the container only if it detects changes in your application files.
