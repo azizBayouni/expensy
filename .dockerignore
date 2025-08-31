@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Dockerignore file
 
 # Git
@@ -19,3 +20,29 @@ build
 # Local environment files
 .env.local
 *.log
+=======
+# Docker-specific files
+Dockerfile
+.dockerignore
+
+# Build artifacts
+.next/
+dist/
+build/
+
+# Local development
+node_modules/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+
+# Version control
+.git
+.gitignore
+>>>>>>> 848f5a87efbb7be198bdc78f0c589e015a791cdb
