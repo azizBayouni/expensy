@@ -8,6 +8,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from '@/components/ui/card';
 import { TimeRangePicker, type TimeRange } from '@/components/ui/time-range-picker';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, CalendarIcon } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { wallets as allWallets, transactions as allTransactions, categories as allCategories } from '@/lib/data';
-import { cn, getWalletIcon } from '@/lib/utils';
+import { cn, getWalletIcon, getIconComponent } from '@/lib/utils';
 import {
   add,
   sub,
@@ -33,8 +34,15 @@ import {
 import { DateRange } from 'react-day-picker';
 import { Progress } from '@/components/ui/progress';
 import { CategoriesDonutChart } from '@/components/charts/categories-donut-chart';
-import { CategorySpendingList } from '@/components/charts/category-spending-list';
+import Link from 'next/link';
 
+const SPENDING_LIST_COLORS = [
+  'bg-chart-1',
+  'bg-chart-2',
+  'bg-chart-3',
+  'bg-chart-4',
+  'bg-chart-5',
+];
 
 export default function ReportsPage() {
     const router = useRouter();
@@ -231,6 +239,50 @@ export default function ReportsPage() {
     const expensePercentage = financialSummary.totalIncome > 0 ? (financialSummary.totalExpense / financialSummary.totalIncome) * 100 : 0;
     const topLevelCategories = allCategories.filter(c => !c.parentId && c.type === 'expense');
 
+    const categorySpending = useMemo(() => {
+        const categoryIdMap = new Map(allCategories.map(c => [c.id, c]));
+
+        const getDescendantIds = (categoryId: string): Set<string> => {
+            const ids = new Set<string>([categoryId]);
+            const queue = [categoryId];
+            while(queue.length > 0) {
+                const currentId = queue.shift()!;
+                const children = allCategories.filter(c => c.parentId === currentId);
+                children.forEach(child => {
+                  ids.add(child.id);
+                  queue.push(child.id);
+                });
+            }
+            return ids;
+        };
+        
+        const spendingByCategory = new Map<string, number>();
+
+        for (const category of topLevelCategories) {
+            const descendantIds = getDescendantIds(category.id);
+            const descendantNames = Array.from(descendantIds)
+                .map(id => categoryIdMap.get(id)?.name)
+                .filter((name): name is string => !!name);
+            
+            const total = financialSummary.transactionsInPeriod
+                .filter(t => t.type === 'expense' && descendantNames.includes(t.category))
+                .reduce((acc, t) => acc + t.amount, 0);
+
+            if (total > 0) {
+                spendingByCategory.set(category.id, total);
+            }
+        }
+
+        return topLevelCategories
+            .map(category => ({
+              ...category,
+              total: spendingByCategory.get(category.id) || 0,
+            }))
+            .filter(c => c.total > 0)
+            .sort((a, b) => b.total - a.total);
+
+    }, [financialSummary.transactionsInPeriod, topLevelCategories]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -366,11 +418,43 @@ export default function ReportsPage() {
             transactions={financialSummary.transactionsInPeriod} 
             categories={topLevelCategories}
         />
-        <CategorySpendingList 
-            transactions={financialSummary.transactionsInPeriod} 
-            categories={topLevelCategories}
-            searchParams={searchParams}
-        />
+        <Card>
+            <CardHeader>
+                <CardTitle>Spending by Category</CardTitle>
+                <CardDescription>A detailed list of your spending.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {categorySpending.length > 0 ? (
+                    <div className="space-y-1">
+                        {categorySpending.map((category, index) => {
+                            const IconComponent = getIconComponent(category.icon);
+                            const linkHref = `/reports/category/${category.id}?${searchParams.toString() || ''}`;
+                            return (
+                                <Link href={linkHref} key={category.id} className="block w-full">
+                                    <div className="flex items-center justify-between gap-4 p-2 rounded-md hover:bg-accent w-full text-left h-auto">
+                                        <div className="flex items-center gap-4 flex-1">
+                                            <div className={`w-2 h-2 rounded-full ${SPENDING_LIST_COLORS[index % SPENDING_LIST_COLORS.length]}`}></div>
+                                            <IconComponent className="w-5 h-5 text-muted-foreground" />
+                                            <p className="font-medium flex-1 truncate">{category.name}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <p className={cn("font-semibold text-right", "text-red-500")}>
+                                                {category.total.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
+                                            </p>
+                                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                        </div>
+                                    </div>
+                                </Link>
+                            )
+                        })}
+                    </div>
+                ) : (
+                    <div className="h-full flex items-center justify-center">
+                        <p className="text-muted-foreground">No spending data available.</p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
       </div>
     </div>
   );

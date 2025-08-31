@@ -539,5 +539,3 @@ export default function CategoryReportPage() {
     </div>
   );
 }
-
-    

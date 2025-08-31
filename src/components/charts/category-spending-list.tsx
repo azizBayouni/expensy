@@ -11,18 +11,15 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import Link from 'next/link';
-import { Button } from '../ui/button';
-import { ReadonlyURLSearchParams } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
 import { cn, getIconComponent } from '@/lib/utils';
+import { Button } from '../ui/button';
 
 interface CategorySpendingListProps {
   transactions: Transaction[];
   categories: Category[];
   className?: string;
   onCategoryClick?: (categoryName: string) => void;
-  searchParams?: ReadonlyURLSearchParams;
 }
 
 const COLORS = [
@@ -38,7 +35,6 @@ export function CategorySpendingList({
   categories,
   className,
   onCategoryClick,
-  searchParams,
 }: CategorySpendingListProps) {
 
   const sortedCategories = useMemo(() => {
@@ -125,22 +121,19 @@ export function CategorySpendingList({
           key={category.id}
           variant="ghost"
           className="w-full h-auto justify-start p-0"
-          onClick={() => onCategoryClick?.(category.name)}
+          onClick={() => onCategoryClick(category.name)}
         >
           {content}
         </Button>
       );
     }
-    
-    const linkHref = `/reports/category/${category.id}?${searchParams?.toString() || ''}`;
-    
+
     return (
-      <Link href={linkHref} key={category.id} className="block">
+      <div key={category.id} className="p-2">
         {content}
-      </Link>
+      </div>
     );
   };
-
 
   return (
     <Card className={className}>
