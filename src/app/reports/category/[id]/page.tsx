@@ -458,7 +458,6 @@ export default function CategoryReportPage() {
                     transactions={filteredTransactions}
                     categories={breakdownCategories}
                     onCategoryClick={handleSubCategoryClick}
-                    isInteractive
                 />
              </div>
             ) : (

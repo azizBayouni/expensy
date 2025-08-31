@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '../ui/button';
-import { useSearchParams } from 'next/navigation';
+import { ReadonlyURLSearchParams } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
 import { cn, getIconComponent } from '@/lib/utils';
 
@@ -21,8 +21,8 @@ interface CategorySpendingListProps {
   transactions: Transaction[];
   categories: Category[];
   className?: string;
-  isInteractive?: boolean;
   onCategoryClick?: (categoryName: string) => void;
+  searchParams?: ReadonlyURLSearchParams;
 }
 
 const COLORS = [
@@ -37,10 +37,9 @@ export function CategorySpendingList({
   transactions,
   categories,
   className,
-  isInteractive = false,
   onCategoryClick,
+  searchParams,
 }: CategorySpendingListProps) {
-  const searchParams = useSearchParams();
 
   const sortedCategories = useMemo(() => {
     const expenseTransactions = transactions.filter(t => t.type === 'expense');
@@ -102,7 +101,6 @@ export function CategorySpendingList({
   }
 
   const renderItem = (category: any, index: number) => {
-    const linkHref = `/reports/category/${category.id}?${searchParams.toString()}`;
     const IconComponent = getIconComponent(category.icon);
 
     const content = (
@@ -116,12 +114,12 @@ export function CategorySpendingList({
               <p className={cn("font-semibold text-right", "text-red-500")}>
                   {category.total.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
               </p>
-              {isInteractive && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </div>
       </div>
     );
 
-    if (isInteractive) {
+    if (onCategoryClick) {
       return (
         <Button
           key={category.id}
@@ -134,11 +132,12 @@ export function CategorySpendingList({
       );
     }
     
-    // Default behavior for non-interactive lists.
+    const linkHref = `/reports/category/${category.id}?${searchParams?.toString() || ''}`;
+    
     return (
-      <div key={category.id} className="block">
+      <Link href={linkHref} key={category.id} className="block">
         {content}
-      </div>
+      </Link>
     );
   };
 

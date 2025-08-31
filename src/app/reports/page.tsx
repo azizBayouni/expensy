@@ -231,13 +231,6 @@ export default function ReportsPage() {
     const expensePercentage = financialSummary.totalIncome > 0 ? (financialSummary.totalExpense / financialSummary.totalIncome) * 100 : 0;
     const topLevelCategories = allCategories.filter(c => !c.parentId && c.type === 'expense');
 
-    const handleCategoryClick = (categoryName: string) => {
-        const category = allCategories.find(c => c.name === categoryName);
-        if (category) {
-            router.push(`/reports/category/${category.id}?${searchParams.toString()}`);
-        }
-    };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -376,8 +369,7 @@ export default function ReportsPage() {
         <CategorySpendingList 
             transactions={financialSummary.transactionsInPeriod} 
             categories={topLevelCategories}
-            isInteractive
-            onCategoryClick={handleCategoryClick}
+            searchParams={searchParams}
         />
       </div>
     </div>
