@@ -17,30 +17,18 @@ Copy the `docker-compose.yml` file from this repository to your Unraid server (e
 Alternatively, you can create the file yourself with the following content:
 
 ```yaml
-version: '3.8'
-
 services:
   expensy:
-    # This tells Docker to build the image from the Dockerfile
-    # in the current directory.
     build: .
     container_name: expensy
     restart: always
     ports:
-      # Maps port 9002 on your Unraid server to port 3000 inside the container
-      # You can change 9002 to any other unused port.
-      - "9002:3000"
+      - "3000:3000"
     environment:
-      # Timezone for the container
+      - NODE_ENV=production
       - TZ=Etc/UTC
-      # You can add other environment variables here if needed
-      # - EXAMPLE_VARIABLE=example_value
-volumes:
-  # This creates a named volume to persist application data.
-  # For a Next.js app, this might not be strictly necessary unless
-  # you are storing data on the filesystem that needs to persist
-  # between container restarts.
-  - expensy-data:/app/.next/cache
+    volumes:
+      - expensy-data:/app/.next/cache
 
 volumes:
   expensy-data:
@@ -66,7 +54,7 @@ volumes:
     *   `--build` tells Docker Compose to build the image from your `Dockerfile` the first time you run it.
     *   `-d` runs the container in detached mode.
 
-3.  **Access Your App**: You can now access your Expensy application in your browser at `http://<your-unraid-ip>:9002`.
+3.  **Access Your App**: You can now access your Expensy application in your browser at `http://<your-unraid-ip>:3000`.
 
 ### 3. Updating the Application
 
