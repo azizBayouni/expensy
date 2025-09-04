@@ -1,34 +1,33 @@
-# Dockerfile
-
-# 1. Builder Stage: Build the Next.js application
-FROM node:20-alpine AS builder
-# Set working directory
+# 1. Install dependencies
+FROM node:20-alpine AS deps
 WORKDIR /app
-# Install dependencies
 COPY package.json package-lock.json* ./
 RUN npm ci
-# Copy source code
+
+# 2. Build the application
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Generate the production build
 RUN npm run build
 
-# 2. Runner Stage: Create the final, minimal image
+# 3. Production image
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-# Add a non-root user for security
+ENV NODE_ENV=production
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
-USER nextjs
 
-# Copy the standalone Next.js server output
+COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-# Copy the public directory
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-# Copy the static assets
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Expose the port and set the command to start the server
+USER nextjs
+
 EXPOSE 3000
-ENV PORT 3000
+
+ENV PORT=3000
+
 CMD ["node", "server.js"]
