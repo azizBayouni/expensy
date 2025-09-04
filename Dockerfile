@@ -1,25 +1,23 @@
-
-# 1. Builder Stage
-FROM node:20-alpine AS builder
-
+# 1. Installer Dependencies
+FROM node:20-alpine AS deps
 WORKDIR /app
-
-# Copy package files and install dependencies
 COPY package.json package-lock.json* ./
 RUN npm ci
 
-# Copy the rest of the application source code
+# 2. Builder
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Build the Next.js application
 RUN npm run build
 
-# 2. Runner Stage
+# 3. Runner
 FROM node:20-alpine AS runner
-
 WORKDIR /app
 
-# Create non-root user
+ENV NODE_ENV=production
+
+# Create a non-root user for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
@@ -27,10 +25,10 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/.next/standalone ./
 # Copy static assets
 COPY --from=builder /app/.next/static ./.next/static
-# Copy public assets
+# Create and copy public directory
+RUN mkdir -p public
 COPY --from=builder /app/public ./public
 
-# Set correct permissions
 USER nextjs
 
 EXPOSE 3000
