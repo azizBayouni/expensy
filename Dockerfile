@@ -1,33 +1,36 @@
-# Dockerfile for a Next.js application
+# 1. Base Image: Use an official Node.js runtime as a parent image.
+# We use the alpine variant for a smaller image size.
+FROM node:20-alpine AS base
 
-# 1. Builder stage
-FROM node:20-slim AS builder
+# 2. Set Working Directory: Create a directory where our app will live.
 WORKDIR /app
 
-# Copy package.json and install dependencies
+# 3. Install Dependencies: Copy package files and install dependencies.
+# We copy these first to leverage Docker's layer caching.
 COPY package.json ./
 RUN npm install
 
-# Copy the rest of the application code
+# 4. Copy Application Code: Copy the rest of your app's source code.
 COPY . .
 
-# Build the Next.js application
+# 5. Build the Application: Run the Next.js build command.
+# The `next.config.js` is already configured with `output: 'standalone'`,
+# which creates an optimized, production-ready server.
 RUN npm run build
 
-# 2. Runner stage
-FROM node:20-slim AS runner
+# --- Production Stage ---
+# 6. Production Image: Use a minimal Node.js image for the final container.
+FROM node:20-alpine AS production
+
 WORKDIR /app
 
-# Set environment to production
-ENV NODE_ENV=production
+# 7. Copy Standalone Output: Copy the optimized standalone server from the build stage.
+# This includes only the necessary files to run the app, keeping the image small.
+COPY --from=base /app/public ./public
+COPY --from=base /app/.next/standalone ./
 
-# Copy built assets from the builder stage
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-
-# Expose the port the app will run on
+# 8. Expose Port: The Next.js server runs on port 3000 by default.
 EXPOSE 3000
 
-# Set the command to start the app
+# 9. Start the Server: The command to start the application.
 CMD ["node", "server.js"]
