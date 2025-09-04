@@ -1,36 +1,57 @@
-# 1. Base Image: Use an official Node.js runtime as a parent image.
-# We use the alpine variant for a smaller image size.
-FROM node:20-alpine AS base
-
-# 2. Set Working Directory: Create a directory where our app will live.
+# 1. Install dependencies only when needed
+FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# 3. Install Dependencies: Copy package files and install dependencies.
-# We copy these first to leverage Docker's layer caching.
-COPY package.json ./
-RUN npm install
+# Install dependencies based on the preferred package manager
+COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+RUN \
+  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
+  elif [ -f package-lock.json ]; then npm ci; \
+  elif [ -f pnpm-lock.yaml ]; then yarn global add pnpm && pnpm i --frozen-lockfile; \
+  else echo "Lockfile not found." && exit 1; \
+  fi
 
-# 4. Copy Application Code: Copy the rest of your app's source code.
+
+# 2. Rebuild the source code only when needed
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# 5. Build the Application: Run the Next.js build command.
-# The `next.config.js` is already configured with `output: 'standalone'`,
-# which creates an optimized, production-ready server.
+# Next.js collects completely anonymous telemetry data about general usage.
+# Learn more here: https://nextjs.org/telemetry
+# Uncomment the following line in case you want to disable telemetry during the build.
+ENV NEXT_TELEMETRY_DISABLED 1
+
 RUN npm run build
 
-# --- Production Stage ---
-# 6. Production Image: Use a minimal Node.js image for the final container.
-FROM node:20-alpine AS production
-
+# 3. Production image, copy all the files and run next
+FROM node:20-alpine AS runner
 WORKDIR /app
 
-# 7. Copy Standalone Output: Copy the optimized standalone server from the build stage.
-# This includes only the necessary files to run the app, keeping the image small.
-COPY --from=base /app/public ./public
-COPY --from=base /app/.next/standalone ./
+ENV NODE_ENV production
+# Uncomment the following line in case you want to disable telemetry during runtime.
+# ENV NEXT_TELEMETRY_DISABLED 1
 
-# 8. Expose Port: The Next.js server runs on port 3000 by default.
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+
+# Set the correct permission for prerender cache
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
+
+# Automatically leverage output traces to reduce image size
+# https://nextjs.org/docs/advanced-features/output-file-tracing
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
 EXPOSE 3000
 
-# 9. Start the Server: The command to start the application.
+ENV PORT 3000
+
 CMD ["node", "server.js"]

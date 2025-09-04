@@ -458,7 +458,6 @@ export default function CategoryReportPage() {
                     transactions={filteredTransactions}
                     categories={breakdownCategories}
                     onCategoryClick={handleSubCategoryClick}
-                    isInteractive
                 />
              </div>
             ) : (
@@ -540,5 +539,3 @@ export default function CategoryReportPage() {
     </div>
   );
 }
-
-    

@@ -1,21 +1,7 @@
-# Dockerignore file
-
-# Git
-.git
-.gitignore
-
-# Docker
-Dockerfile
-.dockerignore
-
-# Dependencies
 node_modules
-
-# Build artifacts
 .next
-dist
-build
-
-# Local environment files
-.env.local
-*.log
+.git
+Dockerfile
+docker-compose.yml
+README.md
+.env

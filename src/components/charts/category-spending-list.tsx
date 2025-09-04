@@ -11,17 +11,14 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import Link from 'next/link';
-import { Button } from '../ui/button';
-import { useSearchParams } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
 import { cn, getIconComponent } from '@/lib/utils';
+import { Button } from '../ui/button';
 
 interface CategorySpendingListProps {
   transactions: Transaction[];
   categories: Category[];
   className?: string;
-  isInteractive?: boolean;
   onCategoryClick?: (categoryName: string) => void;
 }
 
@@ -37,10 +34,8 @@ export function CategorySpendingList({
   transactions,
   categories,
   className,
-  isInteractive = false,
   onCategoryClick,
 }: CategorySpendingListProps) {
-  const searchParams = useSearchParams();
 
   const sortedCategories = useMemo(() => {
     const expenseTransactions = transactions.filter(t => t.type === 'expense');
@@ -102,7 +97,6 @@ export function CategorySpendingList({
   }
 
   const renderItem = (category: any, index: number) => {
-    const linkHref = `/reports/category/${category.id}?${searchParams.toString()}`;
     const IconComponent = getIconComponent(category.icon);
 
     const content = (
@@ -116,32 +110,30 @@ export function CategorySpendingList({
               <p className={cn("font-semibold text-right", "text-red-500")}>
                   {category.total.toLocaleString('en-US', { style: 'currency', currency: 'SAR' })}
               </p>
-              {isInteractive && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </div>
       </div>
     );
 
-    if (isInteractive) {
+    if (onCategoryClick) {
       return (
         <Button
           key={category.id}
           variant="ghost"
           className="w-full h-auto justify-start p-0"
-          onClick={() => onCategoryClick?.(category.name)}
+          onClick={() => onCategoryClick(category.name)}
         >
           {content}
         </Button>
       );
     }
-    
-    // Default behavior for non-interactive lists.
+
     return (
-      <div key={category.id} className="block">
+      <div key={category.id} className="p-2">
         {content}
       </div>
     );
   };
-
 
   return (
     <Card className={className}>

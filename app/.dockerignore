@@ -1,0 +1,23 @@
+# Dockerignore
+
+# Git
+.git
+.gitignore
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Node
+node_modules
+npm-debug.log
+.npm
+
+# Next.js
+.next/
+
+# Other
+.DS_Store
+README.md
+*.env.local

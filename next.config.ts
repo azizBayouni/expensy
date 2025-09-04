@@ -1,8 +1,7 @@
-import type {NextConfig} from 'next';
-
-const nextConfig: NextConfig = {
-  /* config options here */
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   output: 'standalone',
+  reactStrictMode: true,
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -13,21 +12,10 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'placehold.co',
-        port: '',
-        pathname: '/**',
+        hostname: 'picsum.photos',
       },
-    ],
-  },
-  devIndicators: {
-    buildActivity: false,
-  },
-  experimental: {
-    allowedDevOrigins: [
-      'https://*.cloudworkstations.dev',
-      'https://*.firebase.studio',
     ],
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;

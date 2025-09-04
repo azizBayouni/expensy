@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: expensy-app
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    # If you have a .env.local file for environment variables, you can use env_file
+    # env_file:
+    #   - .env.local
+    environment:
+      - NODE_ENV=production
+      # Add any other environment variables your app needs
+      # - GEMINI_API_KEY=YOUR_API_KEY_HERE
+    labels:
+      - "com.expensy.description=Personal Finance Tracker"
+      - "com.expensy.version=1.0.0"
